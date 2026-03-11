@@ -141,6 +141,7 @@ export default function App() {
   const [heading, setHeading] = useState<number | null>(null);
   const [isFetchingNearby, setIsFetchingNearby] = useState(false);
   const [hasOrientationPermission, setHasOrientationPermission] = useState<boolean | null>(null);
+  const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -235,6 +236,12 @@ export default function App() {
     );
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => { getGPSLocation(); }, [getGPSLocation]);
 
   useEffect(() => {
@@ -270,7 +277,7 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: [{ text: `I am at ${location.lat}, ${location.lng}. List 5-8 historical landmarks within 10km. Provide name, lat, and lng.` }],
+        contents: [{ text: `I am at ${location.lat}, ${location.lng}. List 5-8 historical landmarks within 15km. Provide name, lat, and lng.` }],
         config: { 
           tools: [{ googleSearch: {} }], 
           responseMimeType: "application/json",
@@ -547,21 +554,52 @@ export default function App() {
 
               <div className="relative">
                 {isCameraActive ? (
-                  <div className="relative aspect-[4/3] rounded-[40px] overflow-hidden bg-black shadow-2xl border-4 border-white/10">
+                  <div className={cn(
+                    "relative rounded-[40px] overflow-hidden bg-black shadow-2xl border-4 border-white/10 transition-all duration-500",
+                    isScanMode && isLandscape ? "aspect-[21/9]" : "aspect-[4/3]"
+                  )}>
                     <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-80" />
                     
                     {/* HUD Elements */}
-                    <div className="hud-corner top-6 left-6 border-t-2 border-l-2" />
-                    <div className="hud-corner top-6 right-6 border-t-2 border-r-2" />
-                    <div className="hud-corner bottom-6 left-6 border-b-2 border-l-2" />
-                    <div className="hud-corner bottom-6 right-6 border-b-2 border-r-2" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 border border-brand-accent/20 rounded-full flex items-center justify-center">
-                      <div className="w-1 h-1 bg-brand-accent rounded-full" />
-                    </div>
+                    {!isScanMode && (
+                      <>
+                        <div className="hud-corner top-6 left-6 border-t-2 border-l-2" />
+                        <div className="hud-corner top-6 right-6 border-t-2 border-r-2" />
+                        <div className="hud-corner bottom-6 left-6 border-b-2 border-l-2" />
+                        <div className="hud-corner bottom-6 right-6 border-b-2 border-r-2" />
+                      </>
+                    )}
 
                     {isScanMode && (
-                      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                        {isFetchingNearby ? (
+                      <>
+                        {/* Binocular Mask */}
+                        <div className="absolute inset-0 pointer-events-none z-10 flex">
+                          <div className="flex-1 bg-black/60 backdrop-blur-[2px]" style={{ maskImage: 'radial-gradient(circle at 100% 50%, transparent 70%, black 75%)', WebkitMaskImage: 'radial-gradient(circle at 100% 50%, transparent 70%, black 75%)' }} />
+                          <div className="w-24 bg-black/60 flex flex-col items-center justify-center gap-4 border-x border-brand-accent/20">
+                            <div className="w-px h-full bg-brand-accent/20" />
+                            <div className="w-4 h-4 border border-brand-accent/40 rounded-full flex items-center justify-center">
+                              <div className="w-1 h-1 bg-brand-accent rounded-full" />
+                            </div>
+                            <div className="w-px h-full bg-brand-accent/20" />
+                          </div>
+                          <div className="flex-1 bg-black/60 backdrop-blur-[2px]" style={{ maskImage: 'radial-gradient(circle at 0% 50%, transparent 70%, black 75%)', WebkitMaskImage: 'radial-gradient(circle at 0% 50%, transparent 70%, black 75%)' }} />
+                        </div>
+
+                        {/* Orientation Hint */}
+                        {!isLandscape && (
+                          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brand-bg/90 p-10 text-center gap-6">
+                            <motion.div animate={{ rotate: 90 }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
+                              <RefreshCw className="w-16 h-16 text-brand-accent" />
+                            </motion.div>
+                            <div className="space-y-2">
+                              <h3 className="serif text-2xl">Rotate for Binoculars</h3>
+                              <p className="text-xs font-mono opacity-50 uppercase tracking-widest">Turn your device sideways to engage long-range scanning mode</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+                          {isFetchingNearby ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                             <div className="flex flex-col items-center gap-4">
                               <Loader2 className="w-10 h-10 text-brand-accent animate-spin" />
@@ -596,7 +634,8 @@ export default function App() {
                           })
                         )}
                       </div>
-                    )}
+                    </>
+                  )}
                     <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6">
                       {!isScanMode && <button onClick={capturePhoto} className="w-20 h-20 rounded-full bg-white/10 border-8 border-brand-accent/20 flex items-center justify-center shadow-2xl active:scale-90 transition-transform"><div className="w-12 h-12 rounded-full bg-brand-accent shadow-[0_0_20px_rgba(212,175,55,0.6)]" /></button>}
                       <button onClick={stopCamera} className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors"><X className="w-6 h-6" /></button>
