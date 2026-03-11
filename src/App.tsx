@@ -319,30 +319,27 @@ export default function App() {
     if (!location) return;
     setIsFetchingNearby(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ text: `I am at ${location.lat}, ${location.lng}. List 5-8 historical landmarks within 15km. Provide name, lat, and lng.` }],
-        config: { 
-          tools: [{ googleSearch: {} }], 
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                name: { type: Type.STRING },
-                lat: { type: Type.NUMBER },
-                lng: { type: Type.NUMBER }
-              },
-              required: ["name", "lat", "lng"]
-            }
-          }
-        }
-      });
+      // Querying OpenStreetMap Overpass API for real historical data
+      const query = `
+        [out:json][timeout:25];
+        (
+          node["historic"~"castle|ruins|monument|archaeological_site|tower"](around:15000, ${location.lat}, ${location.lng});
+          way["historic"~"castle|ruins|monument|archaeological_site|tower"](around:15000, ${location.lat}, ${location.lng});
+          relation["historic"~"castle|ruins|monument|archaeological_site|tower"](around:15000, ${location.lat}, ${location.lng});
+        );
+        out center;
+      `;
       
-      const data = JSON.parse(response.text) as NearbyLandmark[];
-      const withBearings = data.map(lm => {
+      const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      
+      const landmarks: NearbyLandmark[] = data.elements.map((el: any) => ({
+        name: el.tags.name || el.tags.historic || "Historical Site",
+        lat: el.lat || el.center?.lat,
+        lng: el.lon || el.center?.lon
+      })).filter((l: any) => l.lat && l.lng && l.name !== "Historical Site");
+
+      const withBearings = landmarks.map(lm => {
         const R = 6371; // Earth radius in km
         const dLat = (lm.lat - location.lat) * Math.PI / 180;
         const dLon = (lm.lng - location.lng) * Math.PI / 180;
