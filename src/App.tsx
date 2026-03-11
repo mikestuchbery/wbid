@@ -5,8 +5,6 @@ import {
   Camera, MapPin, History, Info, Loader2, X, Compass, 
   Globe, Navigation, RefreshCw, Scan, Eye, Save, Check, LogIn, LogOut, Map
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
 // Firebase
 import { auth, db } from './firebase';
@@ -17,36 +15,12 @@ import {
   collection, addDoc, query, where, onSnapshot, serverTimestamp, deleteDoc, doc 
 } from 'firebase/firestore';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-// --- Types ---
-interface LandmarkInfo {
-  name: string;
-  date: string;
-  category: string;
-  history: string;
-  coordinates?: { lat: number; lng: number };
-}
-
-interface SavedLandmark extends LandmarkInfo {
-  id: string;
-  uid: string;
-  lat: number;
-  lng: number;
-  savedAt: any;
-}
-
-interface NearbyLandmark {
-  name: string;
-  lat: number;
-  lng: number;
-  distance?: number;
-  bearing?: number;
-}
-
-// --- Components ---
+// Types & Components
+import { LandmarkInfo, SavedLandmark, NearbyLandmark, LocationStatus } from './types';
+import { CameraView } from './components/CameraView';
+import { FeedSystem } from './components/FeedSystem';
+import { fetchNearbyLandmarks } from './services/osmService';
+import { cn } from './utils';
 
 const ResultCard = ({ 
   result, 
@@ -135,7 +109,7 @@ export default function App() {
 
   // Device State
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'success' | 'error'>('idle');
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
   const [nearbyLandmarks, setNearbyLandmarks] = useState<NearbyLandmark[]>([]);
   const [heading, setHeading] = useState<number | null>(null);
   const [isFetchingNearby, setIsFetchingNearby] = useState(false);
@@ -154,18 +128,11 @@ export default function App() {
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
-      // Adding custom parameters can sometimes help with iframe issues
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
     } catch (err: any) {
       console.error("Auth error:", err);
-      if (err.code === 'auth/popup-blocked') {
-        setError("Sign-in popup was blocked. Please allow popups for this site.");
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError("This domain is not authorized for Firebase Auth. Please check your Firebase Console settings.");
-      } else {
-        setError(`Sign in failed: ${err.message}`);
-      }
+      setError(`Sign in failed: ${err.message}`);
     }
   };
 
@@ -183,7 +150,7 @@ export default function App() {
       setSavedLandmarks(docs);
     }, (err) => {
       console.error("Firestore sync error:", err);
-      setError("Failed to sync your discoveries. Please check your connection.");
+      setError("Failed to sync your discoveries.");
     });
     return unsubscribe;
   }, [user]);
@@ -304,10 +271,8 @@ export default function App() {
       try {
         const permission = await (DeviceOrientationEvent as any).requestPermission();
         setHasOrientationPermission(permission === 'granted');
-        if (permission !== 'granted') setError("Orientation permission denied. AR mode will be limited.");
       } catch (err) {
         console.error("Permission error:", err);
-        setError("Failed to request orientation permission.");
       }
     } else {
       setHasOrientationPermission(true);
@@ -318,48 +283,8 @@ export default function App() {
     if (!location) return;
     setIsFetchingNearby(true);
     try {
-      // Querying OpenStreetMap Overpass API for real historical data
-      const query = `
-        [out:json][timeout:25];
-        (
-          node["historic"~"castle|ruins|monument|archaeological_site|tower"](around:15000, ${location.lat}, ${location.lng});
-          way["historic"~"castle|ruins|monument|archaeological_site|tower"](around:15000, ${location.lat}, ${location.lng});
-          relation["historic"~"castle|ruins|monument|archaeological_site|tower"](around:15000, ${location.lat}, ${location.lng});
-        );
-        out center;
-      `;
-      
-      const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-      const data = await response.json();
-      
-      const landmarks: NearbyLandmark[] = data.elements.map((el: any) => ({
-        name: el.tags.name || el.tags.historic || "Historical Site",
-        lat: el.lat || el.center?.lat,
-        lng: el.lon || el.center?.lon
-      })).filter((l: any) => l.lat && l.lng && l.name !== "Historical Site");
-
-      const withBearings = landmarks.map(lm => {
-        const R = 6371; // Earth radius in km
-        const dLat = (lm.lat - location.lat) * Math.PI / 180;
-        const dLon = (lm.lng - location.lng) * Math.PI / 180;
-        const lat1 = location.lat * Math.PI / 180;
-        const lat2 = lm.lat * Math.PI / 180;
-
-        // Distance calculation (Haversine)
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1) * Math.cos(lat2) * 
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
-
-        // Bearing calculation
-        const y = Math.sin(dLon) * Math.cos(lat2);
-        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-        let brng = Math.atan2(y, x) * 180 / Math.PI;
-        
-        return { ...lm, bearing: (brng + 360) % 360, distance };
-      });
-      setNearbyLandmarks(withBearings);
+      const landmarks = await fetchNearbyLandmarks(location.lat, location.lng);
+      setNearbyLandmarks(landmarks);
     } catch (err) { 
       console.error("Nearby fetch error:", err);
       setError("Failed to find nearby landmarks.");
@@ -382,35 +307,22 @@ export default function App() {
 
   useEffect(() => {
     let stream: MediaStream | null = null;
-    
     const enableCamera = async () => {
       if (isCameraActive) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            } 
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
           });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
+          if (videoRef.current) videoRef.current.srcObject = stream;
         } catch (err: any) {
-          console.error("Camera access error:", err);
-          setError(`Camera error: ${err.message || "Could not access camera"}`);
+          console.error("Camera error:", err);
+          setError("Could not access camera.");
           setIsCameraActive(false);
         }
       }
     };
-
     enableCamera();
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-      }
-    };
+    return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
   }, [isCameraActive]);
 
   const stopCamera = () => {
@@ -434,11 +346,9 @@ export default function App() {
     if (!image) return;
     setIsAnalyzing(true);
     setError(null);
-    console.log("Starting image analysis...");
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const prompt = `Identify this historical landmark. Current GPS: ${location?.lat}, ${location?.lng}. Provide a detailed historical chronicle.`;
-      
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [{ 
@@ -453,16 +363,13 @@ export default function App() {
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              name: { type: Type.STRING, description: "Common name of the landmark" },
-              date: { type: Type.STRING, description: "Estimated date or period of construction" },
-              category: { type: Type.STRING, description: "Type of landmark (e.g. Castle, Ruin, Town Hall)" },
-              history: { type: Type.STRING, description: "A paragraph of historical context" },
+              name: { type: Type.STRING },
+              date: { type: Type.STRING },
+              category: { type: Type.STRING },
+              history: { type: Type.STRING },
               coordinates: {
                 type: Type.OBJECT,
-                properties: {
-                  lat: { type: Type.NUMBER },
-                  lng: { type: Type.NUMBER }
-                },
+                properties: { lat: { type: Type.NUMBER }, lng: { type: Type.NUMBER } },
                 required: ["lat", "lng"]
               }
             },
@@ -470,15 +377,11 @@ export default function App() {
           }
         }
       });
-
-      console.log("Analysis response received:", response.text);
-      if (!response.text) throw new Error("Empty response from AI");
-      
       const data = JSON.parse(response.text);
       setResult(data);
     } catch (err: any) { 
       console.error("Analysis error:", err);
-      setError(`Analysis failed: ${err.message || "Unknown error"}`); 
+      setError("Analysis failed."); 
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -524,10 +427,6 @@ export default function App() {
         <div className="flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{user.email?.split('@')[0]}</span>
-              </div>
               <button onClick={logout} className="p-2 text-white/40 hover:text-white transition-colors">
                 <LogOut className="w-5 h-5" />
               </button>
@@ -543,38 +442,7 @@ export default function App() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showSaved ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="serif text-5xl glow-text">Your <span className="italic text-brand-accent">Discoveries</span></h2>
-              <button onClick={() => setShowSaved(false)} className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Back to Explorer</button>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savedLandmarks.length === 0 ? (
-                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-30 space-y-4">
-                  <Globe className="w-12 h-12" />
-                  <p className="serif text-2xl italic">No discoveries yet.<br />The world is waiting.</p>
-                </div>
-              ) : (
-                savedLandmarks.map(lm => (
-                  <div key={lm.id} className="glass p-6 rounded-3xl space-y-4 relative group">
-                    <button onClick={() => deleteSaved(lm.id)} className="absolute top-4 right-4 p-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-500 transition-all">
-                      <X className="w-4 h-4" />
-                    </button>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">{lm.category}</span>
-                      <h4 className="serif text-2xl glow-text">{lm.name}</h4>
-                    </div>
-                    <p className="text-sm text-brand-text/60 line-clamp-3 font-light">{lm.history}</p>
-                    <div className="flex gap-4 pt-2">
-                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${lm.lat},${lm.lng}`} target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-brand-accent flex items-center gap-1 hover:underline">
-                        <Navigation className="w-3 h-3" /> Route
-                      </a>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
+          <FeedSystem landmarks={savedLandmarks} onDelete={deleteSaved} />
         ) : (
           <div className="flex flex-col gap-12 items-center">
             <section className="w-full max-w-2xl space-y-8">
@@ -595,142 +463,16 @@ export default function App() {
 
               <div className="relative">
                 {isCameraActive ? (
-                  <div className={cn(
-                    "relative rounded-[40px] overflow-hidden bg-black shadow-2xl border-4 border-white/10 transition-all duration-500",
-                    isScanMode && isLandscape ? "aspect-[21/9]" : "aspect-[4/3]"
-                  )}>
-                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-80" />
-                    
-                    {/* HUD Elements */}
-                    {!isScanMode && (
-                      <>
-                        <div className="hud-corner top-6 left-6 border-t-2 border-l-2" />
-                        <div className="hud-corner top-6 right-6 border-t-2 border-r-2" />
-                        <div className="hud-corner bottom-6 left-6 border-b-2 border-l-2" />
-                        <div className="hud-corner bottom-6 right-6 border-b-2 border-r-2" />
-                      </>
-                    )}
-
-                    {isScanMode && (
-                      <>
-                        {/* Binocular Mask */}
-                        <div className="absolute inset-0 pointer-events-none z-10 flex">
-                          <div className="flex-1 bg-black/60 backdrop-blur-[2px]" style={{ maskImage: 'radial-gradient(circle at 100% 50%, transparent 70%, black 75%)', WebkitMaskImage: 'radial-gradient(circle at 100% 50%, transparent 70%, black 75%)' }} />
-                          <div className="w-24 bg-black/60 flex flex-col items-center justify-center gap-4 border-x border-brand-accent/20">
-                            <div className="w-px h-full bg-brand-accent/20" />
-                            <div className="w-4 h-4 border border-brand-accent/40 rounded-full flex items-center justify-center">
-                              <div className="w-1 h-1 bg-brand-accent rounded-full" />
-                            </div>
-                            <div className="w-px h-full bg-brand-accent/20" />
-                          </div>
-                          <div className="flex-1 bg-black/60 backdrop-blur-[2px]" style={{ maskImage: 'radial-gradient(circle at 0% 50%, transparent 70%, black 75%)', WebkitMaskImage: 'radial-gradient(circle at 0% 50%, transparent 70%, black 75%)' }} />
-                        </div>
-
-                        {/* Orientation Hint */}
-                        {!isLandscape && (
-                          <div className="absolute inset-0 z-50 flex flex-col items-center bg-brand-bg/95 p-8 overflow-y-auto">
-                            <div className="w-full max-w-md space-y-8 pt-10">
-                              <div className="flex flex-col items-center text-center gap-4">
-                                <motion.div animate={{ rotate: 90 }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
-                                  <RefreshCw className="w-12 h-12 text-brand-accent" />
-                                </motion.div>
-                                <div className="space-y-2">
-                                  <h3 className="serif text-3xl glow-text">Nearby <span className="italic text-brand-accent">Grid</span></h3>
-                                  <p className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Rotate for Binoculars • Tap cards to save</p>
-                                </div>
-                              </div>
-
-                              <div className="grid gap-4">
-                                {nearbyLandmarks.length === 0 ? (
-                                  <div className="py-10 text-center opacity-30">
-                                    <p className="serif italic">Scanning horizon...</p>
-                                  </div>
-                                ) : (
-                                  nearbyLandmarks.map((lm, idx) => (
-                                    <motion.div 
-                                      key={idx}
-                                      initial={{ opacity: 0, x: -20 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: idx * 0.1 }}
-                                      className="glass p-5 rounded-3xl flex justify-between items-center group"
-                                    >
-                                      <div className="space-y-1">
-                                        <h4 className="serif text-xl glow-text">{lm.name}</h4>
-                                        <div className="flex items-center gap-3 text-[9px] font-mono opacity-50 uppercase tracking-widest">
-                                          <span className="text-brand-accent">{lm.distance?.toFixed(2)}km</span>
-                                          <span>Bearing {lm.bearing?.toFixed(0)}°</span>
-                                        </div>
-                                      </div>
-                                      <button 
-                                        onClick={() => saveNearbyLandmark(lm)}
-                                        disabled={isSaving}
-                                        className="p-3 bg-brand-accent/10 text-brand-accent rounded-full hover:bg-brand-accent hover:text-brand-bg transition-all active:scale-90 disabled:opacity-50"
-                                      >
-                                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                      </button>
-                                    </motion.div>
-                                  ))
-                                )}
-                              </div>
-                              
-                              <button 
-                                onClick={stopCamera}
-                                className="w-full py-4 glass rounded-2xl text-[10px] font-bold uppercase tracking-[0.3em] opacity-50 hover:opacity-100 transition-opacity"
-                              >
-                                Close Scanner
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
-                          {isFetchingNearby ? (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                            <div className="flex flex-col items-center gap-4">
-                              <Loader2 className="w-10 h-10 text-brand-accent animate-spin" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Syncing Local Grid...</span>
-                            </div>
-                          </div>
-                        ) : heading === null ? (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                            <div className="flex flex-col items-center gap-4 text-center px-10">
-                              <RefreshCw className="w-8 h-8 text-brand-accent animate-spin" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Calibrating Compass...<br/>Move your device in a figure 8</span>
-                            </div>
-                          </div>
-                        ) : (
-                          nearbyLandmarks.map((lm, i) => {
-                            if (heading === null || lm.bearing === undefined) return null;
-                            let diff = lm.bearing - heading;
-                            if (diff > 180) diff -= 360;
-                            if (diff < -180) diff += 360;
-                            if (Math.abs(diff) > 30) return null;
-                             return (
-                               <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" style={{ left: `${(diff / 30) * 50 + 50}%` }}>
-                                 <button 
-                                   onClick={() => saveNearbyLandmark(lm)}
-                                   disabled={isSaving}
-                                   className="glass px-4 py-2 rounded-full shadow-xl flex flex-col items-center hover:bg-brand-accent/20 transition-colors active:scale-95 disabled:opacity-50"
-                                 >
-                                   <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-brand-accent">{lm.name}</span>
-                                   {lm.distance !== undefined && (
-                                     <span className="text-[8px] font-mono opacity-60">{lm.distance.toFixed(1)}km</span>
-                                   )}
-                                   {isSaving && <Loader2 className="w-2 h-2 animate-spin mt-1 text-brand-accent" />}
-                                 </button>
-                                 <div className="w-0.5 h-16 bg-gradient-to-b from-brand-accent to-transparent" />
-                               </motion.div>
-                             );
-                          })
-                        )}
-                      </div>
-                    </>
-                  )}
-                    <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6">
-                      {!isScanMode && <button onClick={capturePhoto} className="w-20 h-20 rounded-full bg-white/10 border-8 border-brand-accent/20 flex items-center justify-center shadow-2xl active:scale-90 transition-transform"><div className="w-12 h-12 rounded-full bg-brand-accent shadow-[0_0_20px_rgba(212,175,55,0.6)]" /></button>}
-                      <button onClick={stopCamera} className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors"><X className="w-6 h-6" /></button>
-                    </div>
-                  </div>
+                  <CameraView 
+                    isLandscape={isLandscape}
+                    isFetchingNearby={isFetchingNearby}
+                    heading={heading}
+                    nearbyLandmarks={nearbyLandmarks}
+                    isSaving={isSaving}
+                    onSave={saveNearbyLandmark}
+                    onClose={stopCamera}
+                    videoRef={videoRef}
+                  />
                 ) : !image ? (
                   <div className="flex flex-col gap-4">
                     <button 
