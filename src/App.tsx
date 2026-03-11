@@ -140,6 +140,7 @@ export default function App() {
   const [nearbyLandmarks, setNearbyLandmarks] = useState<NearbyLandmark[]>([]);
   const [heading, setHeading] = useState<number | null>(null);
   const [isFetchingNearby, setIsFetchingNearby] = useState(false);
+  const [hasOrientationPermission, setHasOrientationPermission] = useState<boolean | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -241,9 +242,26 @@ export default function App() {
       const compass = (e as any).webkitCompassHeading || (360 - (e.alpha || 0));
       setHeading(compass);
     };
-    if (isScanMode) window.addEventListener('deviceorientation', handleOrientation);
+    if (isScanMode && hasOrientationPermission) {
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
     return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, [isScanMode]);
+  }, [isScanMode, hasOrientationPermission]);
+
+  const requestOrientationPermission = async () => {
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      try {
+        const permission = await (DeviceOrientationEvent as any).requestPermission();
+        setHasOrientationPermission(permission === 'granted');
+        if (permission !== 'granted') setError("Orientation permission denied. AR mode will be limited.");
+      } catch (err) {
+        console.error("Permission error:", err);
+        setError("Failed to request orientation permission.");
+      }
+    } else {
+      setHasOrientationPermission(true);
+    }
+  };
 
   const fetchNearby = async () => {
     if (!location) return;
@@ -251,19 +269,55 @@ export default function App() {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ text: `I am at ${location.lat}, ${location.lng}. List 5-8 historical landmarks within 3km. Return JSON array: [{"name": "string", "lat": number, "lng": number}].` }],
-        config: { tools: [{ googleMaps: {} }], responseMimeType: "application/json" }
+        model: "gemini-3-flash-preview",
+        contents: [{ text: `I am at ${location.lat}, ${location.lng}. List 5-8 historical landmarks within 10km. Provide name, lat, and lng.` }],
+        config: { 
+          tools: [{ googleSearch: {} }], 
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                lat: { type: Type.NUMBER },
+                lng: { type: Type.NUMBER }
+              },
+              required: ["name", "lat", "lng"]
+            }
+          }
+        }
       });
+      
       const data = JSON.parse(response.text) as NearbyLandmark[];
       const withBearings = data.map(lm => {
-        const y = Math.sin(lm.lng - location.lng) * Math.cos(lm.lat);
-        const x = Math.cos(location.lat) * Math.sin(lm.lat) - Math.sin(location.lat) * Math.cos(lm.lat) * Math.cos(lm.lng - location.lng);
+        const R = 6371; // Earth radius in km
+        const dLat = (lm.lat - location.lat) * Math.PI / 180;
+        const dLon = (lm.lng - location.lng) * Math.PI / 180;
+        const lat1 = location.lat * Math.PI / 180;
+        const lat2 = lm.lat * Math.PI / 180;
+
+        // Distance calculation (Haversine)
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1) * Math.cos(lat2) * 
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+
+        // Bearing calculation
+        const y = Math.sin(dLon) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
         let brng = Math.atan2(y, x) * 180 / Math.PI;
-        return { ...lm, bearing: (brng + 360) % 360 };
+        
+        return { ...lm, bearing: (brng + 360) % 360, distance };
       });
       setNearbyLandmarks(withBearings);
-    } catch (err) { console.error(err); } finally { setIsFetchingNearby(false); }
+    } catch (err) { 
+      console.error("Nearby fetch error:", err);
+      setError("Failed to find nearby landmarks.");
+    } finally { 
+      setIsFetchingNearby(false); 
+    }
   };
 
   // --- Camera Logic ---
@@ -276,11 +330,14 @@ export default function App() {
   }, []);
 
   const startCamera = async (mode: 'capture' | 'scan') => {
+    if (mode === 'scan') {
+      await requestOrientationPermission();
+      fetchNearby();
+    }
     setIsCameraActive(true);
     setIsScanMode(mode === 'scan');
     setImage(null);
     setResult(null);
-    if (mode === 'scan') fetchNearby();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (videoRef.current) videoRef.current.srcObject = stream;
@@ -506,7 +563,17 @@ export default function App() {
                       <div className="absolute inset-0 pointer-events-none overflow-hidden">
                         {isFetchingNearby ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                            <Loader2 className="w-10 h-10 text-brand-accent animate-spin" />
+                            <div className="flex flex-col items-center gap-4">
+                              <Loader2 className="w-10 h-10 text-brand-accent animate-spin" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Syncing Local Grid...</span>
+                            </div>
+                          </div>
+                        ) : heading === null ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                            <div className="flex flex-col items-center gap-4 text-center px-10">
+                              <RefreshCw className="w-8 h-8 text-brand-accent animate-spin" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Calibrating Compass...<br/>Move your device in a figure 8</span>
+                            </div>
                           </div>
                         ) : (
                           nearbyLandmarks.map((lm, i) => {
@@ -517,8 +584,11 @@ export default function App() {
                             if (Math.abs(diff) > 30) return null;
                             return (
                               <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" style={{ left: `${(diff / 30) * 50 + 50}%` }}>
-                                <div className="glass px-4 py-2 rounded-full shadow-xl">
+                                <div className="glass px-4 py-2 rounded-full shadow-xl flex flex-col items-center">
                                   <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-brand-accent">{lm.name}</span>
+                                  {lm.distance !== undefined && (
+                                    <span className="text-[8px] font-mono opacity-60">{lm.distance.toFixed(1)}km</span>
+                                  )}
                                 </div>
                                 <div className="w-0.5 h-16 bg-gradient-to-b from-brand-accent to-transparent" />
                               </motion.div>
