@@ -373,14 +373,6 @@ export default function App() {
   };
 
   // --- Camera Logic ---
-  useEffect(() => {
-    return () => {
-      if (videoRef.current?.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
-      }
-    };
-  }, []);
-
   const startCamera = async (mode: 'capture' | 'scan') => {
     if (mode === 'scan') {
       await requestOrientationPermission();
@@ -390,14 +382,42 @@ export default function App() {
     setIsScanMode(mode === 'scan');
     setImage(null);
     setResult(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch (err) { setIsCameraActive(false); }
   };
 
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    
+    const enableCamera = async () => {
+      if (isCameraActive) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            } 
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (err: any) {
+          console.error("Camera access error:", err);
+          setError(`Camera error: ${err.message || "Could not access camera"}`);
+          setIsCameraActive(false);
+        }
+      }
+    };
+
+    enableCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, [isCameraActive]);
+
   const stopCamera = () => {
-    if (videoRef.current?.srcObject) (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
     setIsCameraActive(false);
     setIsScanMode(false);
   };
