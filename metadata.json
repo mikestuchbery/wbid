@@ -1,0 +1,5 @@
+{
+  "name": "WBID?",
+  "description": "Welche Burg ist das? Identify and save historical landmarks using GPS and AI.",
+  "requestFramePermissions": ["camera", "geolocation"]
+}
