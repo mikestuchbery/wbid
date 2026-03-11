@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
 import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  Camera, Upload, MapPin, History, Info, Loader2, X, Compass, 
+  Camera, MapPin, History, Info, Loader2, X, Compass, 
   Globe, Navigation, RefreshCw, Scan, Eye, Save, Check, LogIn, LogOut, Map
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -485,26 +484,6 @@ export default function App() {
     }
   };
 
-  const { getRootProps, getInputProps } = useDropzone({
-    onDrop: (files) => {
-      if (!files[0]) return;
-      const r = new FileReader();
-      r.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setImage(dataUrl);
-        setResult(null);
-        // Auto-analyze on upload for better UX
-        setTimeout(() => {
-          const btn = document.getElementById('identify-trigger');
-          if (btn) btn.click();
-        }, 100);
-      };
-      r.readAsDataURL(files[0]);
-    },
-    accept: { 'image/*': [] } as any,
-    multiple: false
-  } as any);
-
   return (
     <div className="min-h-screen flex flex-col scanline">
       {/* Error Toast */}
@@ -753,20 +732,32 @@ export default function App() {
                     </div>
                   </div>
                 ) : !image ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => startCamera('capture')} className="aspect-square bg-brand-accent text-brand-bg rounded-[40px] flex flex-col items-center justify-center gap-4 shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-transform">
-                      <Camera className="w-10 h-10" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Identify</span>
+                  <div className="flex flex-col gap-4">
+                    <button 
+                      onClick={() => startCamera('scan')} 
+                      className="w-full py-16 glass text-brand-accent rounded-[40px] flex flex-col items-center justify-center gap-6 hover:scale-[1.02] transition-transform shadow-[0_0_30px_rgba(212,175,55,0.1)] group"
+                    >
+                      <div className="relative">
+                        <Scan className="w-16 h-16 group-hover:scale-110 transition-transform duration-500" />
+                        <motion.div 
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
+                          transition={{ repeat: Infinity, duration: 3 }}
+                          className="absolute inset-0 bg-brand-accent/20 blur-xl rounded-full"
+                        />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <span className="text-xl font-bold uppercase tracking-[0.4em] glow-text">Scan AR</span>
+                        <p className="text-[10px] opacity-50 uppercase tracking-[0.2em] font-mono">Engage Binocular Mode</p>
+                      </div>
                     </button>
-                    <button onClick={() => startCamera('scan')} className="aspect-square glass text-brand-accent rounded-[40px] flex flex-col items-center justify-center gap-4 hover:scale-[1.02] transition-transform">
-                      <Scan className="w-10 h-10" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Scan AR</span>
+                    
+                    <button 
+                      onClick={() => startCamera('capture')} 
+                      className="w-full py-6 bg-brand-accent/5 text-brand-accent border border-brand-accent/20 rounded-[32px] flex items-center justify-center gap-4 hover:bg-brand-accent/10 transition-all active:scale-95"
+                    >
+                      <Camera className="w-5 h-5" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Identify Landmark</span>
                     </button>
-                    <div {...getRootProps()} className="col-span-2 p-8 border-2 border-dashed border-white/10 rounded-[40px] flex items-center justify-center gap-4 cursor-pointer hover:bg-white/5 transition-colors">
-                      <input {...getInputProps()} />
-                      <Upload className="w-6 h-6 text-brand-accent" />
-                      <span className="text-xs font-bold uppercase tracking-widest opacity-50">Upload from Gallery</span>
-                    </div>
                   </div>
                 ) : (
                   <div className="relative aspect-[4/3] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white/10">
