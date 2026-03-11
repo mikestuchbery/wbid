@@ -211,6 +211,51 @@ export default function App() {
     }
   };
 
+  const saveNearbyLandmark = async (lm: NearbyLandmark) => {
+    if (!user) {
+      setError("Please sign in to save discoveries.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ text: `Provide a brief historical chronicle (1 paragraph), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}.` }],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              history: { type: Type.STRING },
+              category: { type: Type.STRING },
+              date: { type: Type.STRING }
+            },
+            required: ["history", "category", "date"]
+          }
+        }
+      });
+      
+      const info = JSON.parse(response.text);
+      
+      await addDoc(collection(db, 'saved_landmarks'), {
+        uid: user.uid,
+        name: lm.name,
+        date: info.date,
+        category: info.category,
+        history: info.history,
+        lat: lm.lat,
+        lng: lm.lng,
+        savedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Save nearby failed:", err);
+      setError("Failed to save discovery.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const deleteSaved = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
@@ -587,13 +632,57 @@ export default function App() {
 
                         {/* Orientation Hint */}
                         {!isLandscape && (
-                          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brand-bg/90 p-10 text-center gap-6">
-                            <motion.div animate={{ rotate: 90 }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
-                              <RefreshCw className="w-16 h-16 text-brand-accent" />
-                            </motion.div>
-                            <div className="space-y-2">
-                              <h3 className="serif text-2xl">Rotate for Binoculars</h3>
-                              <p className="text-xs font-mono opacity-50 uppercase tracking-widest">Turn your device sideways to engage long-range scanning mode</p>
+                          <div className="absolute inset-0 z-50 flex flex-col items-center bg-brand-bg/95 p-8 overflow-y-auto">
+                            <div className="w-full max-w-md space-y-8 pt-10">
+                              <div className="flex flex-col items-center text-center gap-4">
+                                <motion.div animate={{ rotate: 90 }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
+                                  <RefreshCw className="w-12 h-12 text-brand-accent" />
+                                </motion.div>
+                                <div className="space-y-2">
+                                  <h3 className="serif text-3xl glow-text">Nearby <span className="italic text-brand-accent">Grid</span></h3>
+                                  <p className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Rotate for Binoculars • Tap cards to save</p>
+                                </div>
+                              </div>
+
+                              <div className="grid gap-4">
+                                {nearbyLandmarks.length === 0 ? (
+                                  <div className="py-10 text-center opacity-30">
+                                    <p className="serif italic">Scanning horizon...</p>
+                                  </div>
+                                ) : (
+                                  nearbyLandmarks.map((lm, idx) => (
+                                    <motion.div 
+                                      key={idx}
+                                      initial={{ opacity: 0, x: -20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: idx * 0.1 }}
+                                      className="glass p-5 rounded-3xl flex justify-between items-center group"
+                                    >
+                                      <div className="space-y-1">
+                                        <h4 className="serif text-xl glow-text">{lm.name}</h4>
+                                        <div className="flex items-center gap-3 text-[9px] font-mono opacity-50 uppercase tracking-widest">
+                                          <span className="text-brand-accent">{lm.distance?.toFixed(2)}km</span>
+                                          <span>Bearing {lm.bearing?.toFixed(0)}°</span>
+                                        </div>
+                                      </div>
+                                      <button 
+                                        onClick={() => saveNearbyLandmark(lm)}
+                                        disabled={isSaving}
+                                        className="p-3 bg-brand-accent/10 text-brand-accent rounded-full hover:bg-brand-accent hover:text-brand-bg transition-all active:scale-90 disabled:opacity-50"
+                                      >
+                                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                      </button>
+                                    </motion.div>
+                                  ))
+                                )}
+                              </div>
+                              
+                              <button 
+                                onClick={stopCamera}
+                                className="w-full py-4 glass rounded-2xl text-[10px] font-bold uppercase tracking-[0.3em] opacity-50 hover:opacity-100 transition-opacity"
+                              >
+                                Close Scanner
+                              </button>
                             </div>
                           </div>
                         )}
@@ -620,17 +709,22 @@ export default function App() {
                             if (diff > 180) diff -= 360;
                             if (diff < -180) diff += 360;
                             if (Math.abs(diff) > 30) return null;
-                            return (
-                              <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" style={{ left: `${(diff / 30) * 50 + 50}%` }}>
-                                <div className="glass px-4 py-2 rounded-full shadow-xl flex flex-col items-center">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-brand-accent">{lm.name}</span>
-                                  {lm.distance !== undefined && (
-                                    <span className="text-[8px] font-mono opacity-60">{lm.distance.toFixed(1)}km</span>
-                                  )}
-                                </div>
-                                <div className="w-0.5 h-16 bg-gradient-to-b from-brand-accent to-transparent" />
-                              </motion.div>
-                            );
+                             return (
+                               <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" style={{ left: `${(diff / 30) * 50 + 50}%` }}>
+                                 <button 
+                                   onClick={() => saveNearbyLandmark(lm)}
+                                   disabled={isSaving}
+                                   className="glass px-4 py-2 rounded-full shadow-xl flex flex-col items-center hover:bg-brand-accent/20 transition-colors active:scale-95 disabled:opacity-50"
+                                 >
+                                   <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-brand-accent">{lm.name}</span>
+                                   {lm.distance !== undefined && (
+                                     <span className="text-[8px] font-mono opacity-60">{lm.distance.toFixed(1)}km</span>
+                                   )}
+                                   {isSaving && <Loader2 className="w-2 h-2 animate-spin mt-1 text-brand-accent" />}
+                                 </button>
+                                 <div className="w-0.5 h-16 bg-gradient-to-b from-brand-accent to-transparent" />
+                               </motion.div>
+                             );
                           })
                         )}
                       </div>
