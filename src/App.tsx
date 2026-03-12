@@ -132,7 +132,15 @@ export default function App() {
     { id: "ruins", label: "Ruins" },
     { id: "monument", label: "Monuments" },
     { id: "archaeological_site", label: "Archaeology" },
-    { id: "tower", label: "Towers" }
+    { id: "tower", label: "Towers" },
+    { id: "church", label: "Churches" },
+    { id: "palace", label: "Palaces" },
+    { id: "fort", label: "Forts" },
+    { id: "memorial", label: "Memorials" },
+    { id: "bridge", label: "Bridges" },
+    { id: "monastery", label: "Monasteries" },
+    { id: "manor", label: "Manors" },
+    { id: "city_gate", label: "City Gates" }
   ];
 
   // Auth & Data State
@@ -448,7 +456,6 @@ export default function App() {
       <AnimatePresence>
         {isCameraActive && (
           <CameraView 
-            isLandscape={isLandscape}
             isFetchingNearby={isFetchingNearby}
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}

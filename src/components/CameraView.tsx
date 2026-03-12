@@ -6,7 +6,6 @@ import { POIMarker } from './POIMarker';
 import { cn } from '../utils';
 
 interface CameraViewProps {
-  isLandscape: boolean;
   isFetchingNearby: boolean;
   heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
@@ -18,7 +17,6 @@ interface CameraViewProps {
 }
 
 export const CameraView: React.FC<CameraViewProps> = ({
-  isLandscape,
   isFetchingNearby,
   heading,
   nearbyLandmarks,
@@ -41,28 +39,6 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
       {/* AR Overlay Layer */}
       <div className="absolute inset-0 z-10">
-        {/* Orientation Hint for non-landscape */}
-        {!isLandscape && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brand-bg/95 p-8 text-center gap-6">
-            <motion.div 
-              animate={{ rotate: 90 }} 
-              transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}
-            >
-              <RefreshCw className="w-16 h-16 text-brand-accent" />
-            </motion.div>
-            <div className="space-y-2">
-              <h3 className="serif text-3xl glow-text">Rotate for <span className="italic text-brand-accent">Binoculars</span></h3>
-              <p className="text-sm font-mono opacity-50 uppercase tracking-widest">Landscape mode required for AR alignment</p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="mt-8 px-8 py-4 glass rounded-full text-xs font-bold uppercase tracking-widest"
-            >
-              Exit Viewfinder
-            </button>
-          </div>
-        )}
-
         {/* HUD & Markers */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Central Reticle */}
