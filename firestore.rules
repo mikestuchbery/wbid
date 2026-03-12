@@ -22,7 +22,8 @@ service cloud.firestore {
              data.date is string && data.date.size() < 100 &&
              data.category is string && data.category.size() < 50 &&
              data.history is string && data.history.size() < 2000 &&
-             data.lat is number && data.lng is number;
+             data.lat is number && data.lng is number &&
+             data.collectedAt is timestamp;
     }
 
     match /saved_landmarks/{landmarkId} {

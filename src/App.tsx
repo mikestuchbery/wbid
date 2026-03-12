@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // Firebase
-import { db } from './firebase';
+import { db, handleFirestoreError, OperationType } from './firebase';
 import { 
   collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc 
 } from 'firebase/firestore';
@@ -146,7 +146,8 @@ export default function App() {
 
   // --- Data Logic ---
   useEffect(() => {
-    const q = query(collection(db, 'saved_landmarks'));
+    const path = 'saved_landmarks';
+    const q = query(collection(db, path));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CollectedLandmark));
       setCollectedLandmarks(docs.sort((a, b) => {
@@ -155,7 +156,7 @@ export default function App() {
         return dateB - dateA;
       }));
     }, (err) => {
-      console.error("Firestore sync error:", err);
+      handleFirestoreError(err, OperationType.LIST, path);
       setError("Failed to sync discoveries.");
     });
     return unsubscribe;
@@ -193,8 +194,9 @@ export default function App() {
   const collectLandmark = async () => {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
+    const path = 'saved_landmarks';
     try {
-      await addDoc(collection(db, 'saved_landmarks'), {
+      await addDoc(collection(db, path), {
         uid: 'public',
         name: result.name,
         date: result.date,
@@ -208,6 +210,11 @@ export default function App() {
       setTimeout(() => setDiscovery(null), 3000);
     } catch (err) {
       console.error("Save failed, falling back to local:", err);
+      try {
+        handleFirestoreError(err, OperationType.CREATE, path);
+      } catch (e) {
+        // Log the detailed error but continue with local fallback
+      }
       saveToLocal({
         name: result.name,
         date: result.date,
@@ -229,7 +236,7 @@ export default function App() {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
-      const prompt = `Provide a brief historical chronicle (1 paragraph), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}. ${activeLenses ? `The user is currently focused on these historical eras/types: ${activeLenses}.` : ''} Ensure the history is accurate and engaging.`;
+      const prompt = `Provide a brief historical chronicle (1 paragraph, max 1500 characters), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}. ${activeLenses ? `The user is currently focused on these historical eras/types: ${activeLenses}.` : ''} Ensure the history is accurate and engaging.`;
       
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -260,8 +267,9 @@ export default function App() {
         lng: lm.lng,
       };
 
+      const path = 'saved_landmarks';
       try {
-        await addDoc(collection(db, 'saved_landmarks'), {
+        await addDoc(collection(db, path), {
           ...landmarkData,
           collectedAt: serverTimestamp()
         });
@@ -269,6 +277,11 @@ export default function App() {
         setTimeout(() => setDiscovery(null), 3000);
       } catch (dbErr) {
         console.error("Firestore save failed, falling back to local:", dbErr);
+        try {
+          handleFirestoreError(dbErr, OperationType.CREATE, path);
+        } catch (e) {
+          // Log detailed error
+        }
         saveToLocal(landmarkData);
         setDiscovery(lm.name);
         setTimeout(() => setDiscovery(null), 3000);
@@ -276,16 +289,18 @@ export default function App() {
       }
     } catch (err) {
       console.error("Save nearby failed:", err);
-      setError("Failed to process discovery info.");
+      setError("Failed to save discovery info.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const deleteCollected = async (id: string) => {
+    const path = `saved_landmarks/${id}`;
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
     } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, path);
       console.error("Delete failed:", err);
     }
   };
@@ -427,7 +442,7 @@ export default function App() {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
-      const prompt = `Identify this historical landmark from the image. Current GPS: ${location?.lat}, ${location?.lng}. ${activeLenses ? `The user is currently interested in these historical eras: ${activeLenses}.` : ''} Provide a detailed historical chronicle.`;
+      const prompt = `Identify this historical landmark from the image. Current GPS: ${location?.lat}, ${location?.lng}. ${activeLenses ? `The user is currently interested in these historical eras: ${activeLenses}.` : ''} Provide a detailed historical chronicle (max 1500 characters).`;
       
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -461,8 +476,9 @@ export default function App() {
       setResult(data);
 
       // Automatically save to feed
+      const path = 'saved_landmarks';
       try {
-        await addDoc(collection(db, 'saved_landmarks'), {
+        await addDoc(collection(db, path), {
           uid: 'public',
           name: data.name,
           date: data.date,
@@ -474,6 +490,11 @@ export default function App() {
         });
       } catch (saveErr) {
         console.error("Auto-save failed, falling back to local:", saveErr);
+        try {
+          handleFirestoreError(saveErr, OperationType.CREATE, path);
+        } catch (e) {
+          // Log detailed error
+        }
         saveToLocal({
           name: data.name,
           date: data.date,
