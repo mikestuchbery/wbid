@@ -8,16 +8,16 @@ interface POIMarkerProps {
   landmark: NearbyLandmark;
   heading: number;
   isSaving: boolean;
-  isLoggedIn: boolean;
   onSave: (lm: NearbyLandmark) => void;
+  verticalOffset?: number;
 }
 
 export const POIMarker: React.FC<POIMarkerProps> = ({ 
   landmark, 
   heading, 
   isSaving, 
-  isLoggedIn,
-  onSave 
+  onSave,
+  verticalOffset = 0
 }) => {
   if (landmark.bearing === undefined) return null;
   
@@ -37,7 +37,7 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
       animate={{ 
         scale: isLockedOn ? 1.1 : isInTargetCone ? 1.05 : 1, 
         opacity: 1,
-        y: isLockedOn ? -15 : isInTargetCone ? -5 : 0
+        y: (isLockedOn ? -15 : isInTargetCone ? -5 : 0) + verticalOffset
       }} 
       className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" 
       style={{ left: `${(diff / 30) * 50 + 50}%` }}
@@ -93,9 +93,9 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
             </div>
           ) : isInTargetCone ? (
             <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-full shadow-lg transform hover:scale-105 transition-transform">
-              {isLoggedIn ? <Save className="w-3 h-3" /> : <LogIn className="w-3 h-3" />}
+              <Save className="w-3 h-3" />
               <span className="text-[8px] font-bold uppercase tracking-widest">
-                {isLoggedIn ? "Save to Feed" : "Sign in to Save"}
+                Save to Feed
               </span>
             </div>
           ) : (

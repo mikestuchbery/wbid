@@ -10,7 +10,6 @@ interface CameraViewProps {
   heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
   isSaving: boolean;
-  isLoggedIn: boolean;
   onSave: (lm: NearbyLandmark) => void;
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -21,11 +20,43 @@ export const CameraView: React.FC<CameraViewProps> = ({
   heading,
   nearbyLandmarks,
   isSaving,
-  isLoggedIn,
   onSave,
   onClose,
   videoRef
 }) => {
+  // Calculate vertical offsets to prevent overlapping
+  const organizedLandmarks = React.useMemo(() => {
+    if (heading === null) return [];
+    
+    // 1. Filter landmarks in FOV and sort by bearing
+    const visible = nearbyLandmarks
+      .filter(lm => {
+        if (lm.bearing === undefined) return false;
+        let diff = lm.bearing - heading;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        return Math.abs(diff) <= 30;
+      })
+      .sort((a, b) => (a.bearing || 0) - (b.bearing || 0));
+
+    // 2. Assign vertical offsets
+    const results: { landmark: NearbyLandmark; offset: number }[] = [];
+    let currentOffset = 0;
+    let lastBearing: number | null = null;
+
+    visible.forEach((lm) => {
+      if (lastBearing !== null && Math.abs(lm.bearing! - lastBearing) < 8) {
+        currentOffset -= 80; // Stack upwards
+      } else {
+        currentOffset = 0;
+      }
+      results.push({ landmark: lm, offset: currentOffset });
+      lastBearing = lm.bearing!;
+    });
+
+    return results;
+  }, [nearbyLandmarks, heading]);
+
   return (
     <div className="fixed inset-0 bg-black z-50 overflow-hidden">
       {/* Camera Feed */}
@@ -75,14 +106,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </div>
 
           {/* Markers */}
-          {heading !== null && nearbyLandmarks.map((lm, i) => (
+          {heading !== null && organizedLandmarks.map(({ landmark, offset }, i) => (
             <POIMarker 
-              key={`${lm.name}-${i}`}
-              landmark={lm}
+              key={`${landmark.name}-${i}`}
+              landmark={landmark}
               heading={heading}
               isSaving={isSaving}
-              isLoggedIn={isLoggedIn}
               onSave={onSave}
+              verticalOffset={offset}
             />
           ))}
         </div>

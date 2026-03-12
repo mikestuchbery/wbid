@@ -7,12 +7,9 @@ import {
 } from 'lucide-react';
 
 // Firebase
-import { auth, db } from './firebase';
+import { db } from './firebase';
 import { 
-  signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut 
-} from 'firebase/auth';
-import { 
-  collection, addDoc, query, where, onSnapshot, serverTimestamp, deleteDoc, doc 
+  collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc 
 } from 'firebase/firestore';
 
 // Types & Components
@@ -22,27 +19,25 @@ import { FeedSystem } from './components/FeedSystem';
 import { fetchNearbyLandmarks } from './services/osmService';
 import { cn } from './utils';
 
-const CATEGORIES = [
-  { id: 'castle', label: 'Castles', icon: '🏰' },
-  { id: 'ruins', label: 'Ruins', icon: '🏚️' },
-  { id: 'monument|memorial', label: 'Monuments', icon: '🗿' },
-  { id: 'archaeological_site', label: 'Ancient', icon: '🏺' },
-  { id: 'fort|battlefield', label: 'Military', icon: '⚔️' },
-  { id: 'church|monastery', label: 'Religious', icon: '⛪' },
+const LENSES = [
+  { id: 'archaeological_site|ruins', label: 'Classical', icon: '🏛️', description: 'Roman & Ancient sites' },
+  { id: 'castle|monastery|city_gate', label: 'Medieval', icon: '🏰', description: 'Castles & Abbeys' },
+  { id: 'palace|manor|stately_house', label: 'Early Modern', icon: '👑', description: 'Palaces & Estates' },
+  { id: 'industrial|mine', label: 'Industrial', icon: '🏭', description: 'Factories & Mines' },
+  { id: 'fort|battlefield|bunker', label: 'Military', icon: '⚔️', description: 'Forts & Battles' },
+  { id: 'church|cathedral', label: 'Religious', icon: '⛪', description: 'Sacred Spaces' },
 ];
 
 const ResultCard = ({ 
   result, 
   onSave, 
   isSaving, 
-  isSaved,
-  isLoggedIn
+  isSaved
 }: { 
   result: LandmarkInfo, 
   onSave: () => void, 
   isSaving: boolean,
-  isSaved: boolean,
-  isLoggedIn: boolean
+  isSaved: boolean
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -76,11 +71,6 @@ const ResultCard = ({
             <>
               <Check className="w-5 h-5" />
               <span className="text-[10px] font-bold uppercase tracking-widest">In Feed</span>
-            </>
-          ) : !isLoggedIn ? (
-            <>
-              <LogIn className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Sign in to Save</span>
             </>
           ) : (
             <>
@@ -134,10 +124,9 @@ export default function App() {
   const [showSaved, setShowSaved] = useState(false);
   const [showScanConfig, setShowScanConfig] = useState(false);
   const [searchRadius, setSearchRadius] = useState(15); // km
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['castle', 'ruins']);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['castle|monastery|city_gate', 'archaeological_site|ruins']);
 
   // Auth & Data State
-  const [user, setUser] = useState<User | null>(null);
   const [savedLandmarks, setSavedLandmarks] = useState<SavedLandmark[]>([]);
   const [localLandmarks, setLocalLandmarks] = useState<SavedLandmark[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -154,49 +143,22 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // --- Auth Logic ---
-  useEffect(() => {
-    return onAuthStateChanged(auth, (u) => setUser(u));
-  }, []);
-
-  const login = async () => {
-    setError(null);
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
-      // Attempt sign in with popup
-      await signInWithPopup(auth, provider);
-    } catch (err: any) {
-      console.error("Auth error:", err);
-      if (err.code === 'auth/popup-blocked') {
-        setError("Sign in popup was blocked. Please allow popups for this site.");
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        // Ignore user cancellation
-      } else {
-        setError(`Sign in failed: ${err.message}. If this persists, try opening the app in a new tab.`);
-      }
-    }
-  };
-
-  const logout = () => signOut(auth);
-
   // --- Data Logic ---
   useEffect(() => {
-    if (!user) {
-      setSavedLandmarks([]);
-      return;
-    }
-    const q = query(collection(db, 'saved_landmarks'), where('uid', '==', user.uid));
+    const q = query(collection(db, 'saved_landmarks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as SavedLandmark));
-      setSavedLandmarks(docs);
+      setSavedLandmarks(docs.sort((a, b) => {
+        const dateA = a.savedAt?.seconds || 0;
+        const dateB = b.savedAt?.seconds || 0;
+        return dateB - dateA;
+      }));
     }, (err) => {
       console.error("Firestore sync error:", err);
-      setError("Failed to sync your discoveries.");
+      setError("Failed to sync discoveries.");
     });
     return unsubscribe;
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const local = localStorage.getItem('wbid_local_chronicle');
@@ -231,27 +193,15 @@ export default function App() {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
     try {
-      if (user) {
-        await addDoc(collection(db, 'saved_landmarks'), {
-          uid: user.uid,
-          name: result.name,
-          date: result.date,
-          category: result.category,
-          history: result.history,
-          lat: result.coordinates.lat,
-          lng: result.coordinates.lng,
-          savedAt: serverTimestamp()
-        });
-      } else {
-        saveToLocal({
-          name: result.name,
-          date: result.date,
-          category: result.category,
-          history: result.history,
-          lat: result.coordinates.lat,
-          lng: result.coordinates.lng,
-        });
-      }
+      await addDoc(collection(db, 'saved_landmarks'), {
+        name: result.name,
+        date: result.date,
+        category: result.category,
+        history: result.history,
+        lat: result.coordinates.lat,
+        lng: result.coordinates.lng,
+        savedAt: serverTimestamp()
+      });
     } catch (err) {
       console.error("Save failed, falling back to local:", err);
       saveToLocal({
@@ -272,9 +222,12 @@ export default function App() {
     setIsSaving(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
+      const prompt = `Provide a brief historical chronicle (1 paragraph), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}. ${activeLenses ? `The user is currently focused on these historical eras/types: ${activeLenses}.` : ''} Ensure the history is accurate and engaging.`;
+      
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: [{ text: `Provide a brief historical chronicle (1 paragraph), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}.` }],
+        contents: [{ text: prompt }],
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -300,20 +253,15 @@ export default function App() {
         lng: lm.lng,
       };
 
-      if (user) {
-        try {
-          await addDoc(collection(db, 'saved_landmarks'), {
-            uid: user.uid,
-            ...landmarkData,
-            savedAt: serverTimestamp()
-          });
-        } catch (dbErr) {
-          console.error("Firestore save failed, falling back to local:", dbErr);
-          saveToLocal(landmarkData);
-          setError("Cloud sync failed. Saved to local chronicle.");
-        }
-      } else {
+      try {
+        await addDoc(collection(db, 'saved_landmarks'), {
+          ...landmarkData,
+          savedAt: serverTimestamp()
+        });
+      } catch (dbErr) {
+        console.error("Firestore save failed, falling back to local:", dbErr);
         saveToLocal(landmarkData);
+        setError("Cloud sync failed. Saved to local chronicle.");
       }
     } catch (err) {
       console.error("Save nearby failed:", err);
@@ -407,7 +355,7 @@ export default function App() {
         return;
       }
       if (selectedCategories.length === 0) {
-        setError("Please select at least one category to scan.");
+        setError("Please select at least one lens to scan.");
         setShowScanConfig(true);
         return;
       }
@@ -464,7 +412,9 @@ export default function App() {
     setError(null);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const prompt = `Identify this historical landmark. Current GPS: ${location?.lat}, ${location?.lng}. Provide a detailed historical chronicle.`;
+      const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
+      const prompt = `Identify this historical landmark from the image. Current GPS: ${location?.lat}, ${location?.lng}. ${activeLenses ? `The user is currently interested in these historical eras: ${activeLenses}.` : ''} Provide a detailed historical chronicle.`;
+      
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [{ 
@@ -496,31 +446,19 @@ export default function App() {
       const data = JSON.parse(response.text);
       setResult(data);
 
-      // Automatically save to feed if user is logged in
-      if (user) {
-        try {
-          await addDoc(collection(db, 'saved_landmarks'), {
-            uid: user.uid,
-            name: data.name,
-            date: data.date,
-            category: data.category,
-            history: data.history,
-            lat: data.coordinates.lat,
-            lng: data.coordinates.lng,
-            savedAt: serverTimestamp()
-          });
-        } catch (saveErr) {
-          console.error("Auto-save failed, falling back to local:", saveErr);
-          saveToLocal({
-            name: data.name,
-            date: data.date,
-            category: data.category,
-            history: data.history,
-            lat: data.coordinates.lat,
-            lng: data.coordinates.lng,
-          });
-        }
-      } else {
+      // Automatically save to feed
+      try {
+        await addDoc(collection(db, 'saved_landmarks'), {
+          name: data.name,
+          date: data.date,
+          category: data.category,
+          history: data.history,
+          lat: data.coordinates.lat,
+          lng: data.coordinates.lng,
+          savedAt: serverTimestamp()
+        });
+      } catch (saveErr) {
+        console.error("Auto-save failed, falling back to local:", saveErr);
         saveToLocal({
           name: data.name,
           date: data.date,
@@ -548,7 +486,6 @@ export default function App() {
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}
             isSaving={isSaving}
-            isLoggedIn={!!user}
             onSave={saveNearbyLandmark}
             onClose={stopCamera}
             videoRef={videoRef}
@@ -582,29 +519,32 @@ export default function App() {
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Lenses</span>
                     <p className="text-[8px] opacity-30 uppercase tracking-tighter">Filter historical signatures</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {CATEGORIES.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          setSelectedCategories(prev => 
-                            prev.includes(cat.id) 
-                              ? prev.filter(id => id !== cat.id)
-                              : [...prev, cat.id]
-                          );
-                        }}
-                        className={cn(
-                          "flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all",
-                          selectedCategories.includes(cat.id)
-                            ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.2)]"
-                            : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
-                        )}
-                      >
-                        <span className="text-xl">{cat.icon}</span>
-                        <span className="text-[8px] font-bold uppercase tracking-tighter">{cat.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {LENSES.map(lens => (
+                        <button
+                          key={lens.id}
+                          onClick={() => {
+                            setSelectedCategories(prev => 
+                              prev.includes(lens.id) 
+                                ? prev.filter(id => id !== lens.id)
+                                : [...prev, lens.id]
+                            );
+                          }}
+                          className={cn(
+                            "flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all text-left",
+                            selectedCategories.includes(lens.id)
+                              ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+                              : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{lens.icon}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{lens.label}</span>
+                          </div>
+                          <p className="text-[8px] opacity-50 uppercase tracking-tighter leading-tight">{lens.description}</p>
+                        </button>
+                      ))}
+                    </div>
                 </div>
 
                 {/* Range Slider */}
@@ -704,18 +644,7 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-3">
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <button onClick={logout} className="p-2 text-white/40 hover:text-white transition-colors">
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </div>
-              ) : (
-                <button onClick={login} className="flex items-center gap-2 px-5 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:scale-105 transition-transform">
-                  <LogIn className="w-3.5 h-3.5" />
-                  Sign In
-                </button>
-              )}
+              {/* Public Feed - No Auth */}
             </div>
           </motion.header>
         )}
@@ -726,8 +655,6 @@ export default function App() {
           <FeedSystem 
             landmarks={[...savedLandmarks, ...localLandmarks]} 
             onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteSaved(id)} 
-            isLoggedIn={!!user}
-            onLogin={login}
           />
         ) : (
           <div className="flex flex-col gap-12 items-center">
@@ -810,7 +737,6 @@ export default function App() {
                     onSave={saveLandmark} 
                     isSaving={isSaving}
                     isSaved={savedLandmarks.some(s => s.name === result.name)}
-                    isLoggedIn={!!user}
                   />
                 )}
               </AnimatePresence>

@@ -7,44 +7,22 @@ import { cn } from '../utils';
 interface FeedSystemProps {
   landmarks: SavedLandmark[];
   onDelete: (id: string) => void;
-  isLoggedIn: boolean;
-  onLogin: () => void;
 }
 
 export const FeedSystem: React.FC<FeedSystemProps> = ({ 
   landmarks, 
-  onDelete,
-  isLoggedIn,
-  onLogin
+  onDelete
 }) => {
   return (
     <div className="space-y-8 pb-32">
       <header className="space-y-2">
         <h2 className="serif text-5xl glow-text">Chronicle <span className="italic text-brand-accent">Feed</span></h2>
-        <p className="text-[10px] font-mono opacity-50 uppercase tracking-[0.3em]">Your discovered historical record</p>
+        <p className="text-[10px] font-mono opacity-50 uppercase tracking-[0.3em]">Public historical record</p>
       </header>
 
       <div className="grid gap-6">
         <AnimatePresence mode="popLayout">
-          {!isLoggedIn ? (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-20 text-center glass rounded-[40px] border-dashed border-2 border-white/5 space-y-6"
-            >
-              <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <div className="space-y-2">
-                <p className="serif italic opacity-40 text-xl">Sign in to sync your chronicle</p>
-                <p className="text-[10px] font-mono opacity-30 uppercase tracking-widest">Access your discoveries across devices</p>
-              </div>
-              <button 
-                onClick={onLogin}
-                className="px-8 py-4 bg-brand-accent text-brand-bg rounded-full text-xs font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform"
-              >
-                Sign In with Google
-              </button>
-            </motion.div>
-          ) : landmarks.length === 0 ? (
+          {landmarks.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
