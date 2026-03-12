@@ -3,16 +3,21 @@ import { NearbyLandmark } from '../types';
 export const fetchNearbyLandmarks = async (
   lat: number, 
   lng: number, 
-  radius: number = 15000
+  radius: number = 15000,
+  categories: string[] = []
 ): Promise<NearbyLandmark[]> => {
+  const categoryFilter = categories.length > 0 
+    ? `["historic"~"${categories.join('|')}"]` 
+    : '["historic"]';
+
   const query = `
     [out:json][timeout:25];
     (
-      node["historic"](around:${radius}, ${lat}, ${lng});
-      way["historic"](around:${radius}, ${lat}, ${lng});
-      relation["historic"](around:${radius}, ${lat}, ${lng});
+      node${categoryFilter}(around:${radius}, ${lat}, ${lng});
+      way${categoryFilter}(around:${radius}, ${lat}, ${lng});
+      relation${categoryFilter}(around:${radius}, ${lat}, ${lng});
     );
-    out center;
+    out center 25;
   `;
   
   const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
