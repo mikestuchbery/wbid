@@ -125,23 +125,6 @@ export default function App() {
   const [showSaved, setShowSaved] = useState(false);
   const [showScanConfig, setShowScanConfig] = useState(false);
   const [searchRadius, setSearchRadius] = useState(15); // km
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(["castle", "ruins", "monument"]);
-
-  const CATEGORIES = [
-    { id: "castle", label: "Castles" },
-    { id: "ruins", label: "Ruins" },
-    { id: "monument", label: "Monuments" },
-    { id: "archaeological_site", label: "Archaeology" },
-    { id: "tower", label: "Towers" },
-    { id: "church", label: "Churches" },
-    { id: "palace", label: "Palaces" },
-    { id: "fort", label: "Forts" },
-    { id: "memorial", label: "Memorials" },
-    { id: "bridge", label: "Bridges" },
-    { id: "monastery", label: "Monasteries" },
-    { id: "manor", label: "Manors" },
-    { id: "city_gate", label: "City Gates" }
-  ];
 
   // Auth & Data State
   const [user, setUser] = useState<User | null>(null);
@@ -339,8 +322,7 @@ export default function App() {
       const landmarks = await fetchNearbyLandmarks(
         location.lat, 
         location.lng, 
-        searchRadius * 1000,
-        selectedCategories
+        searchRadius * 1000
       );
       setNearbyLandmarks(landmarks);
     } catch (err) { 
@@ -442,6 +424,24 @@ export default function App() {
       });
       const data = JSON.parse(response.text);
       setResult(data);
+
+      // Automatically save to feed if user is logged in
+      if (user) {
+        try {
+          await addDoc(collection(db, 'saved_landmarks'), {
+            uid: user.uid,
+            name: data.name,
+            date: data.date,
+            category: data.category,
+            history: data.history,
+            lat: data.coordinates.lat,
+            lng: data.coordinates.lng,
+            savedAt: serverTimestamp()
+          });
+        } catch (saveErr) {
+          console.error("Auto-save failed:", saveErr);
+        }
+      }
     } catch (err: any) { 
       console.error("Analysis error:", err);
       setError("Analysis failed."); 
@@ -513,33 +513,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                {/* Category Filters */}
-                <div className="space-y-4">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Categories</span>
-                  <div className="flex flex-wrap gap-2">
-                    {CATEGORIES.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          setSelectedCategories(prev => 
-                            prev.includes(cat.id) 
-                              ? prev.filter(id => id !== cat.id)
-                              : [...prev, cat.id]
-                          );
-                        }}
-                        className={cn(
-                          "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
-                          selectedCategories.includes(cat.id)
-                            ? "bg-brand-accent text-brand-bg border-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.3)]"
-                            : "bg-white/5 text-white/40 border-white/10 hover:border-white/20"
-                        )}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               <div className="pt-4 flex gap-4">
@@ -551,7 +524,6 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => startCamera('scan')}
-                  disabled={selectedCategories.length === 0}
                   className="flex-2 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
                 >
                   Initialize Scan

@@ -3,16 +3,14 @@ import { NearbyLandmark } from '../types';
 export const fetchNearbyLandmarks = async (
   lat: number, 
   lng: number, 
-  radius: number = 15000,
-  categories: string[] = ["castle", "ruins", "monument", "archaeological_site", "tower"]
+  radius: number = 15000
 ): Promise<NearbyLandmark[]> => {
-  const categoryFilter = categories.join("|");
   const query = `
     [out:json][timeout:25];
     (
-      node["historic"~"${categoryFilter}"](around:${radius}, ${lat}, ${lng});
-      way["historic"~"${categoryFilter}"](around:${radius}, ${lat}, ${lng});
-      relation["historic"~"${categoryFilter}"](around:${radius}, ${lat}, ${lng});
+      node["historic"](around:${radius}, ${lat}, ${lng});
+      way["historic"](around:${radius}, ${lat}, ${lng});
+      relation["historic"](around:${radius}, ${lat}, ${lng});
     );
     out center;
   `;
