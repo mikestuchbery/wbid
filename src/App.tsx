@@ -52,11 +52,26 @@ const ResultCard = ({
           onClick={onSave}
           disabled={isSaving || isSaved}
           className={cn(
-            "p-4 rounded-full transition-all shadow-lg active:scale-95",
+            "flex items-center gap-2 px-6 py-4 rounded-full transition-all shadow-lg active:scale-95",
             isSaved ? "bg-brand-accent text-brand-bg" : "bg-white/5 text-brand-accent hover:bg-brand-accent/10 border border-brand-accent/20"
           )}
         >
-          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : isSaved ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+          {isSaving ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Saving...</span>
+            </>
+          ) : isSaved ? (
+            <>
+              <Check className="w-5 h-5" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">In Feed</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-5 h-5" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Save to Feed</span>
+            </>
+          )}
         </button>
       </div>
 
@@ -101,6 +116,17 @@ export default function App() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isScanMode, setIsScanMode] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [showScanConfig, setShowScanConfig] = useState(false);
+  const [searchRadius, setSearchRadius] = useState(15); // km
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(["castle", "ruins", "monument"]);
+
+  const CATEGORIES = [
+    { id: "castle", label: "Castles" },
+    { id: "ruins", label: "Ruins" },
+    { id: "monument", label: "Monuments" },
+    { id: "archaeological_site", label: "Archaeology" },
+    { id: "tower", label: "Towers" }
+  ];
 
   // Auth & Data State
   const [user, setUser] = useState<User | null>(null);
@@ -283,7 +309,12 @@ export default function App() {
     if (!location) return;
     setIsFetchingNearby(true);
     try {
-      const landmarks = await fetchNearbyLandmarks(location.lat, location.lng);
+      const landmarks = await fetchNearbyLandmarks(
+        location.lat, 
+        location.lng, 
+        searchRadius * 1000,
+        selectedCategories
+      );
       setNearbyLandmarks(landmarks);
     } catch (err) { 
       console.error("Nearby fetch error:", err);
@@ -296,6 +327,10 @@ export default function App() {
   // --- Camera Logic ---
   const startCamera = async (mode: 'capture' | 'scan') => {
     if (mode === 'scan') {
+      if (!showScanConfig && nearbyLandmarks.length === 0) {
+        setShowScanConfig(true);
+        return;
+      }
       await requestOrientationPermission();
       fetchNearby();
     }
@@ -303,6 +338,7 @@ export default function App() {
     setIsScanMode(mode === 'scan');
     setImage(null);
     setResult(null);
+    setShowScanConfig(false);
   };
 
   useEffect(() => {
@@ -389,6 +425,116 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col scanline">
+      {/* Full Screen Camera View */}
+      <AnimatePresence>
+        {isCameraActive && (
+          <CameraView 
+            isLandscape={isLandscape}
+            isFetchingNearby={isFetchingNearby}
+            heading={heading}
+            nearbyLandmarks={nearbyLandmarks}
+            isSaving={isSaving}
+            onSave={saveNearbyLandmark}
+            onClose={stopCamera}
+            videoRef={videoRef}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Scan Configuration Modal */}
+      <AnimatePresence>
+        {showScanConfig && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-brand-bg/90 backdrop-blur-xl"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="glass w-full max-w-md rounded-[40px] p-8 space-y-8"
+            >
+              <div className="space-y-2 text-center">
+                <h3 className="serif text-4xl glow-text">Scan <span className="italic text-brand-accent">Parameters</span></h3>
+                <p className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Configure your binocular lenses</p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Range Slider */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Search Radius</span>
+                      <p className="text-[8px] opacity-30 uppercase tracking-tighter">Extend your historical reach</p>
+                    </div>
+                    <span className="text-brand-accent font-mono text-2xl glow-text">{searchRadius}km</span>
+                  </div>
+                  <div className="relative pt-2">
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="50" 
+                      value={searchRadius}
+                      onChange={(e) => setSearchRadius(parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                    />
+                    <div className="flex justify-between mt-2 text-[8px] font-mono opacity-30 uppercase tracking-tighter">
+                      <span>1km</span>
+                      <span>25km</span>
+                      <span>50km</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category Filters */}
+                <div className="space-y-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Categories</span>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setSelectedCategories(prev => 
+                            prev.includes(cat.id) 
+                              ? prev.filter(id => id !== cat.id)
+                              : [...prev, cat.id]
+                          );
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
+                          selectedCategories.includes(cat.id)
+                            ? "bg-brand-accent text-brand-bg border-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.3)]"
+                            : "bg-white/5 text-white/40 border-white/10 hover:border-white/20"
+                        )}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-4">
+                <button 
+                  onClick={() => setShowScanConfig(false)}
+                  className="flex-1 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => startCamera('scan')}
+                  disabled={selectedCategories.length === 0}
+                  className="flex-2 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
+                >
+                  Initialize Scan
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Error Toast */}
       <AnimatePresence>
         {error && (
@@ -413,32 +559,41 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="p-6 md:p-8 flex justify-between items-center bg-brand-bg/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center text-brand-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-            <Compass className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tighter uppercase leading-none glow-text">WBID?</h1>
-            <p className="text-[8px] uppercase tracking-widest opacity-40 font-bold">Welche Burg ist das?</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {user ? (
-            <div className="flex items-center gap-2">
-              <button onClick={logout} className="p-2 text-white/40 hover:text-white transition-colors">
-                <LogOut className="w-5 h-5" />
-              </button>
+      <AnimatePresence>
+        {!isCameraActive && (
+          <motion.header 
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            exit={{ y: -100 }}
+            className="p-6 md:p-8 flex justify-between items-center bg-brand-bg/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center text-brand-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                <Compass className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tighter uppercase leading-none glow-text">WBID?</h1>
+                <p className="text-[8px] uppercase tracking-widest opacity-40 font-bold">Welche Burg ist das?</p>
+              </div>
             </div>
-          ) : (
-            <button onClick={login} className="flex items-center gap-2 px-5 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:scale-105 transition-transform">
-              <LogIn className="w-3.5 h-3.5" />
-              Sign In
-            </button>
-          )}
-        </div>
-      </header>
+            
+            <div className="flex items-center gap-3">
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={logout} className="p-2 text-white/40 hover:text-white transition-colors">
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={login} className="flex items-center gap-2 px-5 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:scale-105 transition-transform">
+                  <LogIn className="w-3.5 h-3.5" />
+                  Sign In
+                </button>
+              )}
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showSaved ? (
@@ -462,21 +617,10 @@ export default function App() {
               </div>
 
               <div className="relative">
-                {isCameraActive ? (
-                  <CameraView 
-                    isLandscape={isLandscape}
-                    isFetchingNearby={isFetchingNearby}
-                    heading={heading}
-                    nearbyLandmarks={nearbyLandmarks}
-                    isSaving={isSaving}
-                    onSave={saveNearbyLandmark}
-                    onClose={stopCamera}
-                    videoRef={videoRef}
-                  />
-                ) : !image ? (
+                {!image ? (
                   <div className="flex flex-col gap-4">
                     <button 
-                      onClick={() => startCamera('scan')} 
+                      onClick={() => setShowScanConfig(true)} 
                       className="w-full py-16 glass text-brand-accent rounded-[40px] flex flex-col items-center justify-center gap-6 hover:scale-[1.02] transition-transform shadow-[0_0_30px_rgba(212,175,55,0.1)] group"
                     >
                       <div className="relative">
@@ -553,38 +697,47 @@ export default function App() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-3rem)] max-w-md">
-        <div className="glass rounded-full p-2 flex items-center justify-between shadow-2xl border-white/10">
-          <button 
-            onClick={() => setShowSaved(false)}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
-              !showSaved ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
-            )}
+      <AnimatePresence>
+        {!isCameraActive && (
+          <motion.nav 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-3rem)] max-w-md"
           >
-            <Compass className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Explorer</span>
-          </button>
-          <button 
-            onClick={() => setShowSaved(true)}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
-              showSaved ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
-            )}
-          >
-            <History className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Saved</span>
-            {savedLandmarks.length > 0 && (
-              <span className={cn(
-                "px-1.5 rounded-md text-[8px]",
-                showSaved ? "bg-brand-bg/20" : "bg-white/10"
-              )}>
-                {savedLandmarks.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </nav>
+            <div className="glass rounded-full p-2 flex items-center justify-between shadow-2xl border-white/10">
+              <button 
+                onClick={() => setShowSaved(false)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
+                  !showSaved ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
+                )}
+              >
+                <Compass className="w-5 h-5" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Explorer</span>
+              </button>
+              <button 
+                onClick={() => setShowSaved(true)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
+                  showSaved ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
+                )}
+              >
+                <History className="w-5 h-5" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Saved</span>
+                {savedLandmarks.length > 0 && (
+                  <span className={cn(
+                    "px-1.5 rounded-md text-[8px]",
+                    showSaved ? "bg-brand-bg/20" : "bg-white/10"
+                  )}>
+                    {savedLandmarks.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
 
       <canvas ref={canvasRef} className="hidden" />
     </div>

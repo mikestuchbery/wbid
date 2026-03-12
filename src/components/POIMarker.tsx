@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { cn } from '../utils';
 
@@ -84,10 +84,19 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
               {landmark.distance < 1 ? `${(landmark.distance * 1000).toFixed(0)}m` : `${landmark.distance.toFixed(1)}km`}
             </span>
           )}
-          {isSaving && (
-            <div className="flex items-center gap-1.5 mt-2">
+          {isSaving ? (
+            <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-brand-accent/20 rounded-full border border-brand-accent/30">
               <Loader2 className="w-3 h-3 animate-spin text-brand-accent" />
-              <span className="text-[8px] font-bold uppercase tracking-tighter text-brand-accent">Recording...</span>
+              <span className="text-[8px] font-bold uppercase tracking-widest text-brand-accent">Recording...</span>
+            </div>
+          ) : isInTargetCone ? (
+            <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-full shadow-lg transform hover:scale-105 transition-transform">
+              <Save className="w-3 h-3" />
+              <span className="text-[8px] font-bold uppercase tracking-widest">Save to Feed</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 mt-1 opacity-30">
+              <span className="text-[7px] font-bold uppercase tracking-tighter">Target to Identify</span>
             </div>
           )}
         </button>

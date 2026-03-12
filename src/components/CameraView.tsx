@@ -34,7 +34,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
         autoPlay 
         playsInline 
         muted 
-        className="absolute inset-0 w-full h-full object-cover opacity-80"
+        className="absolute inset-0 w-full h-full object-cover"
       />
 
       {/* AR Overlay Layer */}
