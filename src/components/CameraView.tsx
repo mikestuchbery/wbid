@@ -11,6 +11,7 @@ interface CameraViewProps {
   heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
   isSaving: boolean;
+  isLoggedIn: boolean;
   onSave: (lm: NearbyLandmark) => void;
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -22,6 +23,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
   heading,
   nearbyLandmarks,
   isSaving,
+  isLoggedIn,
   onSave,
   onClose,
   videoRef
@@ -103,6 +105,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
               landmark={lm}
               heading={heading}
               isSaving={isSaving}
+              isLoggedIn={isLoggedIn}
               onSave={onSave}
             />
           ))}

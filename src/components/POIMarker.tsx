@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, LogIn } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { cn } from '../utils';
 
@@ -8,6 +8,7 @@ interface POIMarkerProps {
   landmark: NearbyLandmark;
   heading: number;
   isSaving: boolean;
+  isLoggedIn: boolean;
   onSave: (lm: NearbyLandmark) => void;
 }
 
@@ -15,6 +16,7 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
   landmark, 
   heading, 
   isSaving, 
+  isLoggedIn,
   onSave 
 }) => {
   if (landmark.bearing === undefined) return null;
@@ -91,8 +93,10 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
             </div>
           ) : isInTargetCone ? (
             <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-full shadow-lg transform hover:scale-105 transition-transform">
-              <Save className="w-3 h-3" />
-              <span className="text-[8px] font-bold uppercase tracking-widest">Save to Feed</span>
+              {isLoggedIn ? <Save className="w-3 h-3" /> : <LogIn className="w-3 h-3" />}
+              <span className="text-[8px] font-bold uppercase tracking-widest">
+                {isLoggedIn ? "Save to Feed" : "Sign in to Save"}
+              </span>
             </div>
           ) : (
             <div className="flex items-center gap-1 mt-1 opacity-30">

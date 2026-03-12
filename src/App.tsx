@@ -26,12 +26,14 @@ const ResultCard = ({
   result, 
   onSave, 
   isSaving, 
-  isSaved 
+  isSaved,
+  isLoggedIn
 }: { 
   result: LandmarkInfo, 
   onSave: () => void, 
   isSaving: boolean,
-  isSaved: boolean
+  isSaved: boolean,
+  isLoggedIn: boolean
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -65,6 +67,11 @@ const ResultCard = ({
             <>
               <Check className="w-5 h-5" />
               <span className="text-[10px] font-bold uppercase tracking-widest">In Feed</span>
+            </>
+          ) : !isLoggedIn ? (
+            <>
+              <LogIn className="w-5 h-5" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Sign in to Save</span>
             </>
           ) : (
             <>
@@ -155,10 +162,18 @@ export default function App() {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
+      
+      // Attempt sign in with popup
       await signInWithPopup(auth, provider);
     } catch (err: any) {
       console.error("Auth error:", err);
-      setError(`Sign in failed: ${err.message}`);
+      if (err.code === 'auth/popup-blocked') {
+        setError("Sign in popup was blocked. Please allow popups for this site.");
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Ignore user cancellation
+      } else {
+        setError(`Sign in failed: ${err.message}. If this persists, try opening the app in a new tab.`);
+      }
     }
   };
 
@@ -182,7 +197,11 @@ export default function App() {
   }, [user]);
 
   const saveLandmark = async () => {
-    if (!user || !result || !result.coordinates) return;
+    if (!user) {
+      setError("Please sign in to save discoveries to your chronicle.");
+      return;
+    }
+    if (!result || !result.coordinates) return;
     setIsSaving(true);
     try {
       await addDoc(collection(db, 'saved_landmarks'), {
@@ -197,7 +216,7 @@ export default function App() {
       });
     } catch (err) {
       console.error("Save failed:", err);
-      setError("Failed to save location.");
+      setError("Failed to save location. Please check your connection.");
     } finally {
       setIsSaving(false);
     }
@@ -434,6 +453,7 @@ export default function App() {
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}
             isSaving={isSaving}
+            isLoggedIn={!!user}
             onSave={saveNearbyLandmark}
             onClose={stopCamera}
             videoRef={videoRef}
@@ -549,6 +569,14 @@ export default function App() {
               <div className="flex-1">
                 <p className="text-xs font-bold uppercase tracking-wider mb-1">System Alert</p>
                 <p className="text-sm opacity-80">{error}</p>
+                {error.includes("new tab") && (
+                  <button 
+                    onClick={() => window.open(window.location.href, '_blank')}
+                    className="mt-2 text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline"
+                  >
+                    Open in New Tab
+                  </button>
+                )}
               </div>
               <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
                 <X className="w-4 h-4" />
@@ -597,7 +625,12 @@ export default function App() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showSaved ? (
-          <FeedSystem landmarks={savedLandmarks} onDelete={deleteSaved} />
+          <FeedSystem 
+            landmarks={savedLandmarks} 
+            onDelete={deleteSaved} 
+            isLoggedIn={!!user}
+            onLogin={login}
+          />
         ) : (
           <div className="flex flex-col gap-12 items-center">
             <section className="w-full max-w-2xl space-y-8">
@@ -679,6 +712,7 @@ export default function App() {
                     onSave={saveLandmark} 
                     isSaving={isSaving}
                     isSaved={savedLandmarks.some(s => s.name === result.name)}
+                    isLoggedIn={!!user}
                   />
                 )}
               </AnimatePresence>
