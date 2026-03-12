@@ -1,26 +1,26 @@
 {
   "entities": {
-    "SavedLandmark": {
-      "title": "Saved Landmark",
-      "description": "A landmark identified and saved by the user.",
+    "CollectedLandmark": {
+      "title": "Collected Landmark",
+      "description": "A landmark identified and collected by the user.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "The user ID who saved the landmark." },
+        "uid": { "type": "string", "description": "The user ID who collected the landmark (defaults to 'public')." },
         "name": { "type": "string", "description": "The name of the landmark." },
         "date": { "type": "string", "description": "The historical date or period." },
         "category": { "type": "string", "description": "The category (e.g., Castle, Ruin)." },
         "history": { "type": "string", "description": "A descriptive paragraph of the history." },
         "lat": { "type": "number", "description": "Latitude." },
         "lng": { "type": "number", "description": "Longitude." },
-        "savedAt": { "type": "string", "format": "date-time", "description": "When it was saved." }
+        "collectedAt": { "type": "string", "format": "date-time", "description": "When it was collected." }
       },
-      "required": ["uid", "name", "date", "category", "history", "lat", "lng", "savedAt"]
+      "required": ["uid", "name", "date", "category", "history", "lat", "lng", "collectedAt"]
     }
   },
   "firestore": {
     "/saved_landmarks/{landmarkId}": {
-      "schema": "SavedLandmark",
-      "description": "Collection of landmarks saved by users."
+      "schema": "CollectedLandmark",
+      "description": "Collection of landmarks collected by users."
     }
   }
 }

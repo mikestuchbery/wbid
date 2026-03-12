@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Loader2, Save, LogIn } from 'lucide-react';
+import { Loader2, Check, MapPin } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { cn } from '../utils';
 
@@ -8,7 +8,7 @@ interface POIMarkerProps {
   landmark: NearbyLandmark;
   heading: number;
   isSaving: boolean;
-  onSave: (lm: NearbyLandmark) => void;
+  onCollect: (lm: NearbyLandmark) => void;
   verticalOffset?: number;
 }
 
@@ -16,7 +16,7 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
   landmark, 
   heading, 
   isSaving, 
-  onSave,
+  onCollect,
   verticalOffset = 0
 }) => {
   if (landmark.bearing === undefined) return null;
@@ -67,7 +67,7 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
         )}
 
         <button 
-          onClick={() => onSave(landmark)}
+          onClick={() => onCollect(landmark)}
           disabled={isSaving}
           className={cn(
             "glass px-5 py-3 rounded-2xl shadow-2xl flex flex-col items-center transition-all active:scale-95 disabled:opacity-50",
@@ -93,14 +93,15 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
             </div>
           ) : isInTargetCone ? (
             <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-full shadow-lg transform hover:scale-105 transition-transform">
-              <Save className="w-3 h-3" />
+              <Check className="w-3 h-3" />
               <span className="text-[8px] font-bold uppercase tracking-widest">
-                Save to Feed
+                Collect Site
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-1 mt-1 opacity-30">
-              <span className="text-[7px] font-bold uppercase tracking-tighter">Target to Identify</span>
+              <MapPin className="w-2 h-2" />
+              <span className="text-[7px] font-bold uppercase tracking-tighter">Target to Collect</span>
             </div>
           )}
         </button>

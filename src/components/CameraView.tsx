@@ -10,7 +10,7 @@ interface CameraViewProps {
   heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
   isSaving: boolean;
-  onSave: (lm: NearbyLandmark) => void;
+  onCollect: (lm: NearbyLandmark) => void;
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
@@ -20,7 +20,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
   heading,
   nearbyLandmarks,
   isSaving,
-  onSave,
+  onCollect,
   onClose,
   videoRef
 }) => {
@@ -112,7 +112,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
               landmark={landmark}
               heading={heading}
               isSaving={isSaving}
-              onSave={onSave}
+              onCollect={onCollect}
               verticalOffset={offset}
             />
           ))}

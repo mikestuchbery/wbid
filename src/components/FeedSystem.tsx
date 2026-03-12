@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { History, MapPin, Navigation, Trash2, Calendar, Tag } from 'lucide-react';
-import { SavedLandmark } from '../types';
+import { CollectedLandmark } from '../types';
 import { cn } from '../utils';
 
 interface FeedSystemProps {
-  landmarks: SavedLandmark[];
+  landmarks: CollectedLandmark[];
   onDelete: (id: string) => void;
 }
 
@@ -33,8 +33,8 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
             </motion.div>
           ) : (
             [...landmarks].sort((a, b) => {
-              const timeA = a.savedAt?.seconds || 0;
-              const timeB = b.savedAt?.seconds || 0;
+              const timeA = a.collectedAt?.seconds || 0;
+              const timeB = b.collectedAt?.seconds || 0;
               return timeB - timeA;
             }).map((lm) => (
               <motion.div
@@ -68,9 +68,9 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                     <span className="text-[9px] font-bold uppercase tracking-widest text-brand-accent px-3 py-1 bg-brand-accent/10 rounded-full border border-brand-accent/20 backdrop-blur-md">
                       {lm.category}
                     </span>
-                    {lm.savedAt && (
+                    {lm.collectedAt && (
                       <span className="text-[9px] font-mono opacity-50 px-3 py-1 bg-black/20 rounded-full border border-white/5 backdrop-blur-md">
-                        {new Date(lm.savedAt.seconds * 1000).toLocaleDateString()}
+                        {new Date(lm.collectedAt.seconds * 1000).toLocaleDateString()}
                       </span>
                     )}
                   </div>

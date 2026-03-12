@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 
 // Types & Components
-import { LandmarkInfo, SavedLandmark, NearbyLandmark, LocationStatus } from './types';
+import { LandmarkInfo, CollectedLandmark, NearbyLandmark, LocationStatus } from './types';
 import { CameraView } from './components/CameraView';
 import { FeedSystem } from './components/FeedSystem';
 import { fetchNearbyLandmarks } from './services/osmService';
@@ -30,14 +30,14 @@ const LENSES = [
 
 const ResultCard = ({ 
   result, 
-  onSave, 
+  onCollect, 
   isSaving, 
-  isSaved
+  isCollected
 }: { 
   result: LandmarkInfo, 
-  onSave: () => void, 
+  onCollect: () => void, 
   isSaving: boolean,
-  isSaved: boolean
+  isCollected: boolean
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -55,27 +55,27 @@ const ResultCard = ({
           <p className="text-sm font-mono opacity-50 uppercase tracking-widest">{result.date}</p>
         </div>
         <button 
-          onClick={onSave}
-          disabled={isSaving || isSaved}
+          onClick={onCollect}
+          disabled={isSaving || isCollected}
           className={cn(
             "flex items-center gap-2 px-6 py-4 rounded-full transition-all shadow-lg active:scale-95",
-            isSaved ? "bg-brand-accent text-brand-bg" : "bg-white/5 text-brand-accent hover:bg-brand-accent/10 border border-brand-accent/20"
+            isCollected ? "bg-brand-accent text-brand-bg" : "bg-white/5 text-brand-accent hover:bg-brand-accent/10 border border-brand-accent/20"
           )}
         >
           {isSaving ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Saving...</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Collecting...</span>
             </>
-          ) : isSaved ? (
+          ) : isCollected ? (
             <>
               <Check className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">In Feed</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Collected</span>
             </>
           ) : (
             <>
-              <Save className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Save to Feed</span>
+              <History className="w-5 h-5" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Collect Entry</span>
             </>
           )}
         </button>
@@ -121,15 +121,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isScanMode, setIsScanMode] = useState(false);
-  const [showSaved, setShowSaved] = useState(false);
+  const [showChronicle, setShowChronicle] = useState(false);
   const [showScanConfig, setShowScanConfig] = useState(false);
   const [searchRadius, setSearchRadius] = useState(15); // km
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['castle|monastery|city_gate', 'archaeological_site|ruins']);
 
   // Auth & Data State
-  const [savedLandmarks, setSavedLandmarks] = useState<SavedLandmark[]>([]);
-  const [localLandmarks, setLocalLandmarks] = useState<SavedLandmark[]>([]);
+  const [collectedLandmarks, setCollectedLandmarks] = useState<CollectedLandmark[]>([]);
+  const [localLandmarks, setLocalLandmarks] = useState<CollectedLandmark[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [discovery, setDiscovery] = useState<string | null>(null);
 
   // Device State
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -147,10 +148,10 @@ export default function App() {
   useEffect(() => {
     const q = query(collection(db, 'saved_landmarks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as SavedLandmark));
-      setSavedLandmarks(docs.sort((a, b) => {
-        const dateA = a.savedAt?.seconds || 0;
-        const dateB = b.savedAt?.seconds || 0;
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CollectedLandmark));
+      setCollectedLandmarks(docs.sort((a, b) => {
+        const dateA = a.collectedAt?.seconds || 0;
+        const dateB = b.collectedAt?.seconds || 0;
         return dateB - dateA;
       }));
     }, (err) => {
@@ -172,11 +173,11 @@ export default function App() {
   }, []);
 
   const saveToLocal = (landmark: any) => {
-    const newLandmark: SavedLandmark = {
+    const newLandmark: CollectedLandmark = {
       ...landmark,
       id: `local_${Date.now()}`,
-      uid: 'local_user',
-      savedAt: { seconds: Math.floor(Date.now() / 1000) }
+      uid: 'public',
+      collectedAt: { seconds: Math.floor(Date.now() / 1000) }
     };
     const updated = [newLandmark, ...localLandmarks];
     setLocalLandmarks(updated);
@@ -189,19 +190,22 @@ export default function App() {
     localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
   };
 
-  const saveLandmark = async () => {
+  const collectLandmark = async () => {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
     try {
       await addDoc(collection(db, 'saved_landmarks'), {
+        uid: 'public',
         name: result.name,
         date: result.date,
         category: result.category,
         history: result.history,
         lat: result.coordinates.lat,
         lng: result.coordinates.lng,
-        savedAt: serverTimestamp()
+        collectedAt: serverTimestamp()
       });
+      setDiscovery(result.name);
+      setTimeout(() => setDiscovery(null), 3000);
     } catch (err) {
       console.error("Save failed, falling back to local:", err);
       saveToLocal({
@@ -212,13 +216,15 @@ export default function App() {
         lat: result.coordinates.lat,
         lng: result.coordinates.lng,
       });
+      setDiscovery(result.name);
+      setTimeout(() => setDiscovery(null), 3000);
       setError("Cloud sync failed. Saved to local chronicle instead.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const saveNearbyLandmark = async (lm: NearbyLandmark) => {
+  const collectNearbyLandmark = async (lm: NearbyLandmark) => {
     setIsSaving(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
@@ -245,6 +251,7 @@ export default function App() {
       const info = JSON.parse(response.text);
       
       const landmarkData = {
+        uid: 'public',
         name: lm.name,
         date: info.date,
         category: info.category,
@@ -256,11 +263,15 @@ export default function App() {
       try {
         await addDoc(collection(db, 'saved_landmarks'), {
           ...landmarkData,
-          savedAt: serverTimestamp()
+          collectedAt: serverTimestamp()
         });
+        setDiscovery(lm.name);
+        setTimeout(() => setDiscovery(null), 3000);
       } catch (dbErr) {
         console.error("Firestore save failed, falling back to local:", dbErr);
         saveToLocal(landmarkData);
+        setDiscovery(lm.name);
+        setTimeout(() => setDiscovery(null), 3000);
         setError("Cloud sync failed. Saved to local chronicle.");
       }
     } catch (err) {
@@ -271,7 +282,7 @@ export default function App() {
     }
   };
 
-  const deleteSaved = async (id: string) => {
+  const deleteCollected = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
     } catch (err) {
@@ -392,6 +403,9 @@ export default function App() {
   const stopCamera = () => {
     setIsCameraActive(false);
     setIsScanMode(false);
+    if (discovery) {
+      setShowChronicle(true);
+    }
   };
 
   const capturePhoto = () => {
@@ -449,13 +463,14 @@ export default function App() {
       // Automatically save to feed
       try {
         await addDoc(collection(db, 'saved_landmarks'), {
+          uid: 'public',
           name: data.name,
           date: data.date,
           category: data.category,
           history: data.history,
           lat: data.coordinates.lat,
           lng: data.coordinates.lng,
-          savedAt: serverTimestamp()
+          collectedAt: serverTimestamp()
         });
       } catch (saveErr) {
         console.error("Auto-save failed, falling back to local:", saveErr);
@@ -486,7 +501,7 @@ export default function App() {
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}
             isSaving={isSaving}
-            onSave={saveNearbyLandmark}
+            onCollect={collectNearbyLandmark}
             onClose={stopCamera}
             videoRef={videoRef}
           />
@@ -593,6 +608,26 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Discovery Toast */}
+      <AnimatePresence>
+        {discovery && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[200] w-full max-w-xs px-6"
+          >
+            <div className="bg-brand-accent text-brand-bg p-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20">
+              <Check className="w-5 h-5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest">Discovery Collected</p>
+                <p className="text-sm font-bold truncate">{discovery}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Error Toast */}
       <AnimatePresence>
         {error && (
@@ -651,10 +686,10 @@ export default function App() {
       </AnimatePresence>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
-        {showSaved ? (
+        {showChronicle ? (
           <FeedSystem 
-            landmarks={[...savedLandmarks, ...localLandmarks]} 
-            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteSaved(id)} 
+            landmarks={[...collectedLandmarks, ...localLandmarks]} 
+            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
           />
         ) : (
           <div className="flex flex-col gap-12 items-center">
@@ -734,9 +769,9 @@ export default function App() {
                 {result && (
                   <ResultCard 
                     result={result} 
-                    onSave={saveLandmark} 
+                    onCollect={collectLandmark} 
                     isSaving={isSaving}
-                    isSaved={savedLandmarks.some(s => s.name === result.name)}
+                    isCollected={collectedLandmarks.some(s => s.name === result.name)}
                   />
                 )}
               </AnimatePresence>
@@ -765,30 +800,30 @@ export default function App() {
           >
             <div className="glass rounded-full p-2 flex items-center justify-between shadow-2xl border-white/10">
               <button 
-                onClick={() => setShowSaved(false)}
+                onClick={() => setShowChronicle(false)}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
-                  !showSaved ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
+                  !showChronicle ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
                 )}
               >
                 <Compass className="w-5 h-5" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Explorer</span>
               </button>
               <button 
-                onClick={() => setShowSaved(true)}
+                onClick={() => setShowChronicle(true)}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
-                  showSaved ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
+                  showChronicle ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
                 )}
               >
                 <History className="w-5 h-5" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Saved</span>
-                {(savedLandmarks.length + localLandmarks.length) > 0 && (
+                <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
+                {(collectedLandmarks.length + localLandmarks.length) > 0 && (
                   <span className={cn(
                     "px-1.5 rounded-md text-[8px]",
-                    showSaved ? "bg-brand-bg/20" : "bg-white/10"
+                    showChronicle ? "bg-brand-bg/20" : "bg-white/10"
                   )}>
-                    {savedLandmarks.length + localLandmarks.length}
+                    {collectedLandmarks.length + localLandmarks.length}
                   </span>
                 )}
               </button>

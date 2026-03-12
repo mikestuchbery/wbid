@@ -6,25 +6,17 @@ service cloud.firestore {
     // ===============================================================
     // Collection: saved_landmarks
     // Fields:
-    //   - uid: string (required) - Owner ID
+    //   - uid: string (required) - Set to 'public'
     //   - name: string (required)
     //   - date: string (required)
     //   - category: string (required)
     //   - history: string (required)
     //   - lat: number (required)
     //   - lng: number (required)
-    //   - savedAt: timestamp (required)
-
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
+    //   - collectedAt: timestamp (required)
 
     function isValidLandmark(data) {
-      return data.keys().hasAll(['uid', 'name', 'date', 'category', 'history', 'lat', 'lng', 'savedAt']) &&
+      return data.keys().hasAll(['uid', 'name', 'date', 'category', 'history', 'lat', 'lng', 'collectedAt']) &&
              data.uid is string &&
              data.name is string && data.name.size() < 200 &&
              data.date is string && data.date.size() < 100 &&
@@ -34,9 +26,9 @@ service cloud.firestore {
     }
 
     match /saved_landmarks/{landmarkId} {
-      allow read: if isOwner(resource.data.uid);
-      allow create: if isOwner(request.resource.data.uid) && isValidLandmark(request.resource.data);
-      allow delete: if isOwner(resource.data.uid);
+      allow read: if true;
+      allow create: if isValidLandmark(request.resource.data);
+      allow delete: if false; // Only admin via console can delete public records
     }
   }
 }

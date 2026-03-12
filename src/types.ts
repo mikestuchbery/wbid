@@ -8,12 +8,12 @@ export interface LandmarkInfo {
   coordinates?: { lat: number; lng: number };
 }
 
-export interface SavedLandmark extends LandmarkInfo {
+export interface CollectedLandmark extends LandmarkInfo {
   id: string;
   uid: string;
   lat: number;
   lng: number;
-  savedAt: any;
+  collectedAt: any;
   imageUrl?: string;
 }
 
