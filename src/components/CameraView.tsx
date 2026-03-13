@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Loader2, RefreshCw, X } from 'lucide-react';
+import { Loader2, RefreshCw, X, RotateCcw } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { POIMarker } from './POIMarker';
 import { cn } from '../utils';
@@ -10,7 +10,9 @@ interface CameraViewProps {
   heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
   isSaving: boolean;
+  checkCollected: (name: string, lat: number, lng: number) => boolean;
   onCollect: (lm: NearbyLandmark) => void;
+  onRefresh: () => void;
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
@@ -20,7 +22,9 @@ export const CameraView: React.FC<CameraViewProps> = ({
   heading,
   nearbyLandmarks,
   isSaving,
+  checkCollected,
   onCollect,
+  onRefresh,
   onClose,
   videoRef
 }) => {
@@ -112,6 +116,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
               landmark={landmark}
               heading={heading}
               isSaving={isSaving}
+              isCollected={checkCollected(landmark.name, landmark.lat, landmark.lng)}
               onCollect={onCollect}
               verticalOffset={offset}
             />
@@ -121,8 +126,17 @@ export const CameraView: React.FC<CameraViewProps> = ({
         {/* Controls */}
         <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 z-30">
           <button 
+            onClick={onRefresh}
+            disabled={isFetchingNearby}
+            className="p-5 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50"
+            aria-label="Refresh Nearby Landmarks"
+          >
+            <RotateCcw className={cn("w-6 h-6", isFetchingNearby && "animate-spin")} />
+          </button>
+          <button 
             onClick={onClose} 
             className="p-5 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
+            aria-label="Close Camera"
           >
             <X className="w-6 h-6" />
           </button>

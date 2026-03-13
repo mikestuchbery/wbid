@@ -26,10 +26,21 @@ service cloud.firestore {
              data.collectedAt is timestamp;
     }
 
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     match /saved_landmarks/{landmarkId} {
-      allow read: if true;
-      allow create: if isValidLandmark(request.resource.data);
-      allow delete: if false; // Only admin via console can delete public records
+      // Allow reading if it's the user's own landmark or if it's public
+      allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || resource.data.uid == 'public';
+      
+      // Allow creating if authenticated and uid matches, or if it's 'public' (for demo/fallback)
+      allow create: if isValidLandmark(request.resource.data) && 
+                    ( (isAuthenticated() && request.resource.data.uid == request.auth.uid) || 
+                      (request.resource.data.uid == 'public') );
+      
+      // Allow deleting only if owner
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
   }
 }

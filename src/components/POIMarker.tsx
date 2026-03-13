@@ -8,6 +8,7 @@ interface POIMarkerProps {
   landmark: NearbyLandmark;
   heading: number;
   isSaving: boolean;
+  isCollected: boolean;
   onCollect: (lm: NearbyLandmark) => void;
   verticalOffset?: number;
 }
@@ -16,6 +17,7 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
   landmark, 
   heading, 
   isSaving, 
+  isCollected,
   onCollect,
   verticalOffset = 0
 }) => {
@@ -35,9 +37,10 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
     <motion.div 
       initial={{ scale: 0, opacity: 0 }} 
       animate={{ 
-        scale: isLockedOn ? 1.1 : isInTargetCone ? 1.05 : 1, 
-        opacity: 1,
-        y: (isLockedOn ? -15 : isInTargetCone ? -5 : 0) + verticalOffset
+        scale: isLockedOn ? 1.2 : isInTargetCone ? 1.1 : 0.85, 
+        opacity: isLockedOn ? 1 : isInTargetCone ? 0.8 : 0.4,
+        y: (isLockedOn ? -20 : isInTargetCone ? -10 : 0) + verticalOffset,
+        zIndex: isLockedOn ? 30 : isInTargetCone ? 20 : 10
       }} 
       className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" 
       style={{ left: `${(diff / 30) * 50 + 50}%` }}
@@ -90,6 +93,13 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
             <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-brand-accent/20 rounded-full border border-brand-accent/30">
               <Loader2 className="w-3 h-3 animate-spin text-brand-accent" />
               <span className="text-[8px] font-bold uppercase tracking-widest text-brand-accent">Recording...</span>
+            </div>
+          ) : isCollected ? (
+            <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+              <Check className="w-3 h-3" />
+              <span className="text-[8px] font-bold uppercase tracking-widest">
+                Discovered
+              </span>
             </div>
           ) : isInTargetCone ? (
             <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-full shadow-lg transform hover:scale-105 transition-transform">

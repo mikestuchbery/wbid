@@ -17,7 +17,7 @@ export const fetchNearbyLandmarks = async (
       way${categoryFilter}(around:${radius}, ${lat}, ${lng});
       relation${categoryFilter}(around:${radius}, ${lat}, ${lng});
     );
-    out center 25;
+    out center 100;
   `;
   
   const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);

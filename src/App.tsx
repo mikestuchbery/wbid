@@ -7,10 +7,11 @@ import {
 } from 'lucide-react';
 
 // Firebase
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { 
-  collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc 
+  collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc, where 
 } from 'firebase/firestore';
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 // Types & Components
 import { LandmarkInfo, CollectedLandmark, NearbyLandmark, LocationStatus } from './types';
@@ -127,6 +128,8 @@ export default function App() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['castle|monastery|city_gate', 'archaeological_site|ruins']);
 
   // Auth & Data State
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [collectedLandmarks, setCollectedLandmarks] = useState<CollectedLandmark[]>([]);
   const [localLandmarks, setLocalLandmarks] = useState<CollectedLandmark[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -146,8 +149,22 @@ export default function App() {
 
   // --- Data Logic ---
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setIsAuthReady(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+    
     const path = 'saved_landmarks';
-    const q = query(collection(db, path));
+    // If logged in, fetch user's landmarks. If not, fetch public ones (or none)
+    const q = user 
+      ? query(collection(db, path), where('uid', '==', user.uid))
+      : query(collection(db, path), where('uid', '==', 'public'));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CollectedLandmark));
       setCollectedLandmarks(docs.sort((a, b) => {
@@ -160,7 +177,7 @@ export default function App() {
       setError("Failed to sync discoveries.");
     });
     return unsubscribe;
-  }, []);
+  }, [user, isAuthReady]);
 
   useEffect(() => {
     const local = localStorage.getItem('wbid_local_chronicle');
@@ -191,13 +208,30 @@ export default function App() {
     localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
   };
 
+  const login = async () => {
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider());
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError("Authentication failed.");
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   const collectLandmark = async () => {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
     const path = 'saved_landmarks';
     try {
       await addDoc(collection(db, path), {
-        uid: 'public',
+        uid: user?.uid || 'public',
         name: result.name,
         date: result.date,
         category: result.category,
@@ -258,7 +292,7 @@ export default function App() {
       const info = JSON.parse(response.text);
       
       const landmarkData = {
-        uid: 'public',
+        uid: user?.uid || 'public',
         name: lm.name,
         date: info.date,
         category: info.category,
@@ -295,6 +329,11 @@ export default function App() {
     }
   };
 
+  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
+    return [...collectedLandmarks, ...localLandmarks].some(l => 
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
+    );
+  };
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -479,7 +518,7 @@ export default function App() {
       const path = 'saved_landmarks';
       try {
         await addDoc(collection(db, path), {
-          uid: 'public',
+          uid: user?.uid || 'public',
           name: data.name,
           date: data.date,
           category: data.category,
@@ -522,7 +561,9 @@ export default function App() {
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}
             isSaving={isSaving}
+            checkCollected={isLandmarkCollected}
             onCollect={collectNearbyLandmark}
+            onRefresh={fetchNearby}
             onClose={stopCamera}
             videoRef={videoRef}
           />
@@ -691,7 +732,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center text-brand-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                <Compass className="w-5 h-5" />
+                <Compass className="w-5 h-5" aria-hidden="true" />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tighter uppercase leading-none glow-text">WBID?</h1>
@@ -700,7 +741,29 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Public Feed - No Auth */}
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Explorer</p>
+                    <p className="text-[8px] opacity-50 truncate max-w-[100px]">{user.displayName || user.email}</p>
+                  </div>
+                  <button 
+                    onClick={logout}
+                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+                    aria-label="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={login}
+                  className="flex items-center gap-2 px-4 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Login
+                </button>
+              )}
             </div>
           </motion.header>
         )}
@@ -711,6 +774,7 @@ export default function App() {
           <FeedSystem 
             landmarks={[...collectedLandmarks, ...localLandmarks]} 
             onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
+            userLocation={location}
           />
         ) : (
           <div className="flex flex-col gap-12 items-center">
@@ -792,7 +856,7 @@ export default function App() {
                     result={result} 
                     onCollect={collectLandmark} 
                     isSaving={isSaving}
-                    isCollected={collectedLandmarks.some(s => s.name === result.name)}
+                    isCollected={isLandmarkCollected(result.name, result.coordinates.lat, result.coordinates.lng)}
                   />
                 )}
               </AnimatePresence>
@@ -826,8 +890,10 @@ export default function App() {
                   "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
                   !showChronicle ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
                 )}
+                aria-label="Explorer Mode"
+                aria-current={!showChronicle ? 'page' : undefined}
               >
-                <Compass className="w-5 h-5" />
+                <Compass className="w-5 h-5" aria-hidden="true" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Explorer</span>
               </button>
               <button 
@@ -836,8 +902,10 @@ export default function App() {
                   "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
                   showChronicle ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
                 )}
+                aria-label="Chronicle Feed"
+                aria-current={showChronicle ? 'page' : undefined}
               >
-                <History className="w-5 h-5" />
+                <History className="w-5 h-5" aria-hidden="true" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
                 {(collectedLandmarks.length + localLandmarks.length) > 0 && (
                   <span className={cn(
