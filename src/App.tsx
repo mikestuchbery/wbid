@@ -139,10 +139,16 @@ export default function App() {
   const [heading, setHeading] = useState<number | null>(null);
   const [isFetchingNearby, setIsFetchingNearby] = useState(false);
   const [hasOrientationPermission, setHasOrientationPermission] = useState<boolean | null>(null);
-  const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Auto-dismiss errors after 6 seconds
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   // --- Data Logic ---
   useEffect(() => {
@@ -322,12 +328,6 @@ export default function App() {
     );
   }, []);
 
-  useEffect(() => {
-    const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   useEffect(() => { getGPSLocation(); }, [getGPSLocation]);
 
   useEffect(() => {
@@ -474,37 +474,7 @@ export default function App() {
       });
       const data = JSON.parse(response.text);
       setResult(data);
-
-      // Automatically save to feed
-      const path = 'saved_landmarks';
-      try {
-        await addDoc(collection(db, path), {
-          uid: 'public',
-          name: data.name,
-          date: data.date,
-          category: data.category,
-          history: data.history,
-          lat: data.coordinates.lat,
-          lng: data.coordinates.lng,
-          collectedAt: serverTimestamp()
-        });
-      } catch (saveErr) {
-        console.error("Auto-save failed, falling back to local:", saveErr);
-        try {
-          handleFirestoreError(saveErr, OperationType.CREATE, path);
-        } catch (e) {
-          // Log detailed error
-        }
-        saveToLocal({
-          name: data.name,
-          date: data.date,
-          category: data.category,
-          history: data.history,
-          lat: data.coordinates.lat,
-          lng: data.coordinates.lng,
-        });
-      }
-    } catch (err: any) { 
+    } catch (err: any) {
       console.error("Analysis error:", err);
       setError("Analysis failed."); 
     } finally { 
@@ -517,12 +487,14 @@ export default function App() {
       {/* Full Screen Camera View */}
       <AnimatePresence>
         {isCameraActive && (
-          <CameraView 
+          <CameraView
+            isScanMode={isScanMode}
             isFetchingNearby={isFetchingNearby}
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}
             isSaving={isSaving}
             onCollect={collectNearbyLandmark}
+            onCapture={capturePhoto}
             onClose={stopCamera}
             videoRef={videoRef}
           />
@@ -619,7 +591,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => startCamera('scan')}
-                  className="flex-2 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
+                  className="flex-[2] py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
                 >
                   Initialize Scan
                 </button>
@@ -663,14 +635,6 @@ export default function App() {
               <div className="flex-1">
                 <p className="text-xs font-bold uppercase tracking-wider mb-1">System Alert</p>
                 <p className="text-sm opacity-80">{error}</p>
-                {error.includes("new tab") && (
-                  <button 
-                    onClick={() => window.open(window.location.href, '_blank')}
-                    className="mt-2 text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline"
-                  >
-                    Open in New Tab
-                  </button>
-                )}
               </div>
               <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
                 <X className="w-4 h-4" />
@@ -788,11 +752,11 @@ export default function App() {
 
               <AnimatePresence mode="wait">
                 {result && (
-                  <ResultCard 
-                    result={result} 
-                    onCollect={collectLandmark} 
+                  <ResultCard
+                    result={result}
+                    onCollect={collectLandmark}
                     isSaving={isSaving}
-                    isCollected={collectedLandmarks.some(s => s.name === result.name)}
+                    isCollected={[...collectedLandmarks, ...localLandmarks].some(s => s.name === result.name)}
                   />
                 )}
               </AnimatePresence>

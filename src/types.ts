@@ -1,5 +1,3 @@
-import { User } from 'firebase/auth';
-
 export interface LandmarkInfo {
   name: string;
   date: string;

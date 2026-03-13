@@ -1,26 +1,30 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Loader2, RefreshCw, X } from 'lucide-react';
+import { Loader2, RefreshCw, X, Camera } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { POIMarker } from './POIMarker';
 import { cn } from '../utils';
 
 interface CameraViewProps {
+  isScanMode: boolean;
   isFetchingNearby: boolean;
   heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
   isSaving: boolean;
   onCollect: (lm: NearbyLandmark) => void;
+  onCapture: () => void;
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
 export const CameraView: React.FC<CameraViewProps> = ({
+  isScanMode,
   isFetchingNearby,
   heading,
   nearbyLandmarks,
   isSaving,
   onCollect,
+  onCapture,
   onClose,
   videoRef
 }) => {
@@ -119,13 +123,22 @@ export const CameraView: React.FC<CameraViewProps> = ({
         </div>
 
         {/* Controls */}
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 z-30">
-          <button 
-            onClick={onClose} 
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center gap-6 z-30">
+          <button
+            onClick={onClose}
             className="p-5 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
           >
             <X className="w-6 h-6" />
           </button>
+          {!isScanMode && (
+            <button
+              onClick={onCapture}
+              className="p-6 bg-white/10 backdrop-blur-md rounded-full border-4 border-white/50 hover:bg-white/20 transition-all active:scale-90 shadow-2xl"
+              aria-label="Capture photo"
+            >
+              <Camera className="w-8 h-8 text-white" />
+            </button>
+          )}
         </div>
       </div>
 
