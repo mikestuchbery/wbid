@@ -566,6 +566,7 @@ export default function App() {
             onCollect={collectNearbyLandmark}
             onRefresh={fetchNearby}
             onClose={stopCamera}
+            onCapture={!isScanMode ? capturePhoto : undefined}
             videoRef={videoRef}
           />
         )}

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Loader2, RefreshCw, X, RotateCcw } from 'lucide-react';
+import { Loader2, RefreshCw, X, RotateCcw, Camera } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { POIMarker } from './POIMarker';
 import { cn } from '../utils';
@@ -14,6 +14,7 @@ interface CameraViewProps {
   onCollect: (lm: NearbyLandmark) => void;
   onRefresh: () => void;
   onClose: () => void;
+  onCapture?: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
@@ -26,6 +27,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
   onCollect,
   onRefresh,
   onClose,
+  onCapture,
   videoRef
 }) => {
   // Calculate vertical offsets to prevent overlapping
@@ -133,6 +135,15 @@ export const CameraView: React.FC<CameraViewProps> = ({
           >
             <RotateCcw className={cn("w-6 h-6", isFetchingNearby && "animate-spin")} />
           </button>
+          {onCapture && (
+            <button
+              onClick={onCapture}
+              className="p-5 bg-brand-accent backdrop-blur-md rounded-full text-brand-bg hover:scale-105 transition-all active:scale-90 border border-white/10 shadow-[0_0_15px_rgba(212,175,55,0.4)]"
+              aria-label="Capture Photo"
+            >
+              <Camera className="w-6 h-6" />
+            </button>
+          )}
           <button 
             onClick={onClose} 
             className="p-5 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
