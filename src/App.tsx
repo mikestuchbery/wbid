@@ -190,7 +190,7 @@ export default function App() {
     }
   }, []);
 
-  const saveToLocal = (landmark: any) => {
+  const saveToLocal = (landmark: Omit<CollectedLandmark, 'id' | 'uid' | 'collectedAt'> & { uid?: string }) => {
     const newLandmark: CollectedLandmark = {
       ...landmark,
       id: `local_${Date.now()}`,
