@@ -556,7 +556,8 @@ export default function App() {
       {/* Full Screen Camera View */}
       <AnimatePresence>
         {isCameraActive && (
-          <CameraView 
+          <CameraView
+            isScanMode={isScanMode}
             isFetchingNearby={isFetchingNearby}
             heading={heading}
             nearbyLandmarks={nearbyLandmarks}
@@ -564,6 +565,7 @@ export default function App() {
             checkCollected={isLandmarkCollected}
             onCollect={collectNearbyLandmark}
             onRefresh={fetchNearby}
+            onCapture={capturePhoto}
             onClose={stopCamera}
             videoRef={videoRef}
           />
