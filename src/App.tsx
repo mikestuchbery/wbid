@@ -159,11 +159,13 @@ export default function App() {
   useEffect(() => {
     if (!isAuthReady) return;
     
+    if (!user) {
+      setCollectedLandmarks([]);
+      return;
+    }
+
     const path = 'saved_landmarks';
-    // If logged in, fetch user's landmarks. If not, fetch public ones (or none)
-    const q = user 
-      ? query(collection(db, path), where('uid', '==', user.uid))
-      : query(collection(db, path), where('uid', '==', 'public'));
+    const q = query(collection(db, path), where('uid', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CollectedLandmark));
@@ -228,41 +230,45 @@ export default function App() {
   const collectLandmark = async () => {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
-    const path = 'saved_landmarks';
-    try {
-      await addDoc(collection(db, path), {
-        uid: user?.uid || 'public',
-        name: result.name,
-        date: result.date,
-        category: result.category,
-        history: result.history,
-        lat: result.coordinates.lat,
-        lng: result.coordinates.lng,
-        collectedAt: serverTimestamp()
-      });
-      setDiscovery(result.name);
-      setTimeout(() => setDiscovery(null), 3000);
-    } catch (err) {
-      console.error("Save failed, falling back to local:", err);
+
+    const landmarkData = {
+      name: result.name,
+      date: result.date,
+      category: result.category,
+      history: result.history,
+      lat: result.coordinates.lat,
+      lng: result.coordinates.lng,
+    };
+
+    if (user) {
+      const path = 'saved_landmarks';
       try {
-        handleFirestoreError(err, OperationType.CREATE, path);
-      } catch (e) {
-        // Log the detailed error but continue with local fallback
+        await addDoc(collection(db, path), {
+          ...landmarkData,
+          uid: user.uid,
+          collectedAt: serverTimestamp()
+        });
+        setDiscovery(result.name);
+        setTimeout(() => setDiscovery(null), 3000);
+      } catch (err) {
+        console.error("Save failed, falling back to local:", err);
+        try {
+          handleFirestoreError(err, OperationType.CREATE, path);
+        } catch (e) {
+          // Log the detailed error but continue with local fallback
+        }
+        saveToLocal(landmarkData);
+        setDiscovery(result.name);
+        setTimeout(() => setDiscovery(null), 3000);
+        setError("Cloud sync failed. Saved to local chronicle instead.");
       }
-      saveToLocal({
-        name: result.name,
-        date: result.date,
-        category: result.category,
-        history: result.history,
-        lat: result.coordinates.lat,
-        lng: result.coordinates.lng,
-      });
+    } else {
+      saveToLocal(landmarkData);
       setDiscovery(result.name);
       setTimeout(() => setDiscovery(null), 3000);
-      setError("Cloud sync failed. Saved to local chronicle instead.");
-    } finally {
-      setIsSaving(false);
     }
+
+    setIsSaving(false);
   };
 
   const collectNearbyLandmark = async (lm: NearbyLandmark) => {
@@ -292,7 +298,6 @@ export default function App() {
       const info = JSON.parse(response.text);
       
       const landmarkData = {
-        uid: user?.uid || 'public',
         name: lm.name,
         date: info.date,
         category: info.category,
@@ -301,25 +306,32 @@ export default function App() {
         lng: lm.lng,
       };
 
-      const path = 'saved_landmarks';
-      try {
-        await addDoc(collection(db, path), {
-          ...landmarkData,
-          collectedAt: serverTimestamp()
-        });
-        setDiscovery(lm.name);
-        setTimeout(() => setDiscovery(null), 3000);
-      } catch (dbErr) {
-        console.error("Firestore save failed, falling back to local:", dbErr);
+      if (user) {
+        const path = 'saved_landmarks';
         try {
-          handleFirestoreError(dbErr, OperationType.CREATE, path);
-        } catch (e) {
-          // Log detailed error
+          await addDoc(collection(db, path), {
+            ...landmarkData,
+            uid: user.uid,
+            collectedAt: serverTimestamp()
+          });
+          setDiscovery(lm.name);
+          setTimeout(() => setDiscovery(null), 3000);
+        } catch (dbErr) {
+          console.error("Firestore save failed, falling back to local:", dbErr);
+          try {
+            handleFirestoreError(dbErr, OperationType.CREATE, path);
+          } catch (e) {
+            // Log detailed error
+          }
+          saveToLocal(landmarkData);
+          setDiscovery(lm.name);
+          setTimeout(() => setDiscovery(null), 3000);
+          setError("Cloud sync failed. Saved to local chronicle.");
         }
+      } else {
         saveToLocal(landmarkData);
         setDiscovery(lm.name);
         setTimeout(() => setDiscovery(null), 3000);
-        setError("Cloud sync failed. Saved to local chronicle.");
       }
     } catch (err) {
       console.error("Save nearby failed:", err);
@@ -515,33 +527,34 @@ export default function App() {
       setResult(data);
 
       // Automatically save to feed
-      const path = 'saved_landmarks';
-      try {
-        await addDoc(collection(db, path), {
-          uid: user?.uid || 'public',
-          name: data.name,
-          date: data.date,
-          category: data.category,
-          history: data.history,
-          lat: data.coordinates.lat,
-          lng: data.coordinates.lng,
-          collectedAt: serverTimestamp()
-        });
-      } catch (saveErr) {
-        console.error("Auto-save failed, falling back to local:", saveErr);
+      const landmarkData = {
+        name: data.name,
+        date: data.date,
+        category: data.category,
+        history: data.history,
+        lat: data.coordinates.lat,
+        lng: data.coordinates.lng,
+      };
+
+      if (user) {
+        const path = 'saved_landmarks';
         try {
-          handleFirestoreError(saveErr, OperationType.CREATE, path);
-        } catch (e) {
-          // Log detailed error
+          await addDoc(collection(db, path), {
+            ...landmarkData,
+            uid: user.uid,
+            collectedAt: serverTimestamp()
+          });
+        } catch (saveErr) {
+          console.error("Auto-save failed, falling back to local:", saveErr);
+          try {
+            handleFirestoreError(saveErr, OperationType.CREATE, path);
+          } catch (e) {
+            // Log detailed error
+          }
+          saveToLocal(landmarkData);
         }
-        saveToLocal({
-          name: data.name,
-          date: data.date,
-          category: data.category,
-          history: data.history,
-          lat: data.coordinates.lat,
-          lng: data.coordinates.lng,
-        });
+      } else {
+        saveToLocal(landmarkData);
       }
     } catch (err: any) { 
       console.error("Analysis error:", err);
