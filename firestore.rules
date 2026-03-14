@@ -31,13 +31,12 @@ service cloud.firestore {
     }
 
     match /saved_landmarks/{landmarkId} {
-      // Allow reading if it's the user's own landmark or if it's public
-      allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || resource.data.uid == 'public';
+      // Allow reading if it's the user's own landmark
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
       
-      // Allow creating if authenticated and uid matches, or if it's 'public' (for demo/fallback)
+      // Allow creating if authenticated and uid matches
       allow create: if isValidLandmark(request.resource.data) && 
-                    ( (isAuthenticated() && request.resource.data.uid == request.auth.uid) || 
-                      (request.resource.data.uid == 'public') );
+                    (isAuthenticated() && request.resource.data.uid == request.auth.uid);
       
       // Allow deleting only if owner
       allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
