@@ -225,6 +225,30 @@ export default function App() {
     }
   };
 
+  const handleSaveFallback = (
+    err: any,
+    path: string,
+    landmarkData: any,
+    logMessage: string,
+    customErrorMessage?: string,
+    discoveryName?: string
+  ) => {
+    console.error(logMessage, err);
+    try {
+      handleFirestoreError(err, OperationType.CREATE, path);
+    } catch (e) {
+      // Log the detailed error but continue with local fallback
+    }
+    saveToLocal(landmarkData);
+    if (discoveryName) {
+      setDiscovery(discoveryName);
+      setTimeout(() => setDiscovery(null), 3000);
+    }
+    if (customErrorMessage) {
+      setError(customErrorMessage);
+    }
+  };
+
   const collectLandmark = async () => {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
@@ -243,23 +267,21 @@ export default function App() {
       setDiscovery(result.name);
       setTimeout(() => setDiscovery(null), 3000);
     } catch (err) {
-      console.error("Save failed, falling back to local:", err);
-      try {
-        handleFirestoreError(err, OperationType.CREATE, path);
-      } catch (e) {
-        // Log the detailed error but continue with local fallback
-      }
-      saveToLocal({
-        name: result.name,
-        date: result.date,
-        category: result.category,
-        history: result.history,
-        lat: result.coordinates.lat,
-        lng: result.coordinates.lng,
-      });
-      setDiscovery(result.name);
-      setTimeout(() => setDiscovery(null), 3000);
-      setError("Cloud sync failed. Saved to local chronicle instead.");
+      handleSaveFallback(
+        err,
+        path,
+        {
+          name: result.name,
+          date: result.date,
+          category: result.category,
+          history: result.history,
+          lat: result.coordinates.lat,
+          lng: result.coordinates.lng,
+        },
+        "Save failed, falling back to local:",
+        "Cloud sync failed. Saved to local chronicle instead.",
+        result.name
+      );
     } finally {
       setIsSaving(false);
     }
@@ -310,16 +332,14 @@ export default function App() {
         setDiscovery(lm.name);
         setTimeout(() => setDiscovery(null), 3000);
       } catch (dbErr) {
-        console.error("Firestore save failed, falling back to local:", dbErr);
-        try {
-          handleFirestoreError(dbErr, OperationType.CREATE, path);
-        } catch (e) {
-          // Log detailed error
-        }
-        saveToLocal(landmarkData);
-        setDiscovery(lm.name);
-        setTimeout(() => setDiscovery(null), 3000);
-        setError("Cloud sync failed. Saved to local chronicle.");
+        handleSaveFallback(
+          dbErr,
+          path,
+          landmarkData,
+          "Firestore save failed, falling back to local:",
+          "Cloud sync failed. Saved to local chronicle.",
+          lm.name
+        );
       }
     } catch (err) {
       console.error("Save nearby failed:", err);
@@ -528,20 +548,19 @@ export default function App() {
           collectedAt: serverTimestamp()
         });
       } catch (saveErr) {
-        console.error("Auto-save failed, falling back to local:", saveErr);
-        try {
-          handleFirestoreError(saveErr, OperationType.CREATE, path);
-        } catch (e) {
-          // Log detailed error
-        }
-        saveToLocal({
-          name: data.name,
-          date: data.date,
-          category: data.category,
-          history: data.history,
-          lat: data.coordinates.lat,
-          lng: data.coordinates.lng,
-        });
+        handleSaveFallback(
+          saveErr,
+          path,
+          {
+            name: data.name,
+            date: data.date,
+            category: data.category,
+            history: data.history,
+            lat: data.coordinates.lat,
+            lng: data.coordinates.lng,
+          },
+          "Auto-save failed, falling back to local:"
+        );
       }
     } catch (err: any) { 
       console.error("Analysis error:", err);
