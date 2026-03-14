@@ -26,3 +26,11 @@ export interface NearbyLandmark {
 }
 
 export type LocationStatus = 'idle' | 'requesting' | 'success' | 'error';
+
+export interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
+  webkitCompassHeading?: number;
+}
+
+export interface DeviceOrientationEventStatic {
+  requestPermission?: () => Promise<'granted' | 'denied' | 'default'>;
+}

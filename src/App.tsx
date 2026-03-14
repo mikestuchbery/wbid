@@ -14,7 +14,7 @@ import {
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 // Types & Components
-import { LandmarkInfo, CollectedLandmark, NearbyLandmark, LocationStatus } from './types';
+import { LandmarkInfo, CollectedLandmark, NearbyLandmark, LocationStatus, DeviceOrientationEventiOS, DeviceOrientationEventStatic } from './types';
 import { CameraView } from './components/CameraView';
 import { FeedSystem } from './components/FeedSystem';
 import { fetchNearbyLandmarks } from './services/osmService';
@@ -371,7 +371,7 @@ export default function App() {
 
   useEffect(() => {
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      const compass = (e as any).webkitCompassHeading || (360 - (e.alpha || 0));
+      const compass = (e as DeviceOrientationEventiOS).webkitCompassHeading || (360 - (e.alpha || 0));
       setHeading(compass);
     };
     if (isScanMode && hasOrientationPermission) {
@@ -381,9 +381,10 @@ export default function App() {
   }, [isScanMode, hasOrientationPermission]);
 
   const requestOrientationPermission = async () => {
-    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+    const DOEvent = DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
+    if (typeof DOEvent.requestPermission === 'function') {
       try {
-        const permission = await (DeviceOrientationEvent as any).requestPermission();
+        const permission = await DOEvent.requestPermission();
         setHasOrientationPermission(permission === 'granted');
       } catch (err) {
         console.error("Permission error:", err);
