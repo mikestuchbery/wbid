@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -147,6 +147,9 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // --- AI Logic (Cached Instance) ---
+  const ai = useMemo(() => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! }), []);
+
   // --- Data Logic ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -268,7 +271,6 @@ export default function App() {
   const collectNearbyLandmark = async (lm: NearbyLandmark) => {
     setIsSaving(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
       const prompt = `Provide a brief historical chronicle (1 paragraph, max 1500 characters), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}. ${activeLenses ? `The user is currently focused on these historical eras/types: ${activeLenses}.` : ''} Ensure the history is accurate and engaging.`;
       
@@ -479,7 +481,6 @@ export default function App() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
       const prompt = `Identify this historical landmark from the image. Current GPS: ${location?.lat}, ${location?.lng}. ${activeLenses ? `The user is currently interested in these historical eras: ${activeLenses}.` : ''} Provide a detailed historical chronicle (max 1500 characters).`;
       
