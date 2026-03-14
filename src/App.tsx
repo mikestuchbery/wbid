@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Camera, MapPin, History, Info, Loader2, X, Compass, 
@@ -268,28 +267,46 @@ export default function App() {
   const collectNearbyLandmark = async (lm: NearbyLandmark) => {
     setIsSaving(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
       const prompt = `Provide a brief historical chronicle (1 paragraph, max 1500 characters), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}. ${activeLenses ? `The user is currently focused on these historical eras/types: ${activeLenses}.` : ''} Ensure the history is accurate and engaging.`;
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ text: prompt }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              history: { type: Type.STRING },
-              category: { type: Type.STRING },
-              date: { type: Type.STRING }
-            },
-            required: ["history", "category", "date"]
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-3-flash-preview",
+          contents: [{ text: prompt }],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                history: { type: "STRING" },
+                category: { type: "STRING" },
+                date: { type: "STRING" }
+              },
+              required: ["history", "category", "date"]
+            }
           }
-        }
+        })
       });
+
+      if (!res.ok) {
+        throw new Error(`API returned ${res.status}`);
+      }
+
+      const response = await res.json();
       
-      const info = JSON.parse(response.text);
+      let responseText = "";
+      if (response && response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts && response.candidates[0].content.parts[0]) {
+        responseText = response.candidates[0].content.parts[0].text || "{}";
+      } else if (response && response.text) {
+        responseText = response.text || "{}";
+      } else {
+        responseText = "{}";
+      }
+
+      const info = JSON.parse(responseText);
       
       const landmarkData = {
         uid: user?.uid || 'public',
@@ -479,39 +496,58 @@ export default function App() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
       const prompt = `Identify this historical landmark from the image. Current GPS: ${location?.lat}, ${location?.lng}. ${activeLenses ? `The user is currently interested in these historical eras: ${activeLenses}.` : ''} Provide a detailed historical chronicle (max 1500 characters).`;
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ 
-          parts: [
-            { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] } }, 
-            { text: prompt }
-          ] 
-        }],
-        config: { 
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              date: { type: Type.STRING },
-              category: { type: Type.STRING },
-              history: { type: Type.STRING },
-              coordinates: {
-                type: Type.OBJECT,
-                properties: { lat: { type: Type.NUMBER }, lng: { type: Type.NUMBER } },
-                required: ["lat", "lng"]
-              }
-            },
-            required: ["name", "date", "category", "history", "coordinates"]
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-3-flash-preview",
+          contents: [{
+            parts: [
+              { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] } },
+              { text: prompt }
+            ]
+          }],
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                name: { type: "STRING" },
+                date: { type: "STRING" },
+                category: { type: "STRING" },
+                history: { type: "STRING" },
+                coordinates: {
+                  type: "OBJECT",
+                  properties: { lat: { type: "NUMBER" }, lng: { type: "NUMBER" } },
+                  required: ["lat", "lng"]
+                }
+              },
+              required: ["name", "date", "category", "history", "coordinates"]
+            }
           }
-        }
+        })
       });
-      const data = JSON.parse(response.text);
+
+      if (!res.ok) {
+        throw new Error(`API returned ${res.status}`);
+      }
+
+      const response = await res.json();
+
+      let responseText = "";
+      if (response && response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts && response.candidates[0].content.parts[0]) {
+        responseText = response.candidates[0].content.parts[0].text || "{}";
+      } else if (response && response.text) {
+        responseText = response.text || "{}";
+      } else {
+        responseText = "{}";
+      }
+
+      const data = JSON.parse(responseText);
       setResult(data);
 
       // Automatically save to feed
