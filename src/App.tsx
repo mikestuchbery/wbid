@@ -17,102 +17,14 @@ import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User 
 import { LandmarkInfo, CollectedLandmark, NearbyLandmark, LocationStatus } from './types';
 import { CameraView } from './components/CameraView';
 import { FeedSystem } from './components/FeedSystem';
+import { ResultCard } from './components/ResultCard';
+import { ScanConfigModal } from './components/ScanConfigModal';
+import { DiscoveryToast, ErrorToast } from './components/Toasts';
+import { AppHeader } from './components/AppHeader';
+import { BottomNav } from './components/BottomNav';
 import { fetchNearbyLandmarks } from './services/osmService';
 import { cn } from './utils';
-
-const LENSES = [
-  { id: 'archaeological_site|ruins', label: 'Classical', icon: '🏛️', description: 'Roman & Ancient sites' },
-  { id: 'castle|monastery|city_gate', label: 'Medieval', icon: '🏰', description: 'Castles & Abbeys' },
-  { id: 'palace|manor|stately_house', label: 'Early Modern', icon: '👑', description: 'Palaces & Estates' },
-  { id: 'industrial|mine', label: 'Industrial', icon: '🏭', description: 'Factories & Mines' },
-  { id: 'fort|battlefield|bunker', label: 'Military', icon: '⚔️', description: 'Forts & Battles' },
-  { id: 'church|cathedral', label: 'Religious', icon: '⛪', description: 'Sacred Spaces' },
-];
-
-const ResultCard = ({ 
-  result, 
-  onCollect, 
-  isSaving, 
-  isCollected
-}: { 
-  result: LandmarkInfo, 
-  onCollect: () => void, 
-  isSaving: boolean,
-  isCollected: boolean
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="glass rounded-[32px] p-8 md:p-10 space-y-8"
-  >
-    <div className="space-y-4">
-      <div className="flex justify-between items-start">
-        <div className="space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-accent px-2 py-0.5 bg-brand-accent/10 rounded-full border border-brand-accent/20">
-            {result.category}
-          </span>
-          <h3 className="serif text-4xl md:text-5xl leading-tight glow-text">{result.name}</h3>
-          <p className="text-sm font-mono opacity-50 uppercase tracking-widest">{result.date}</p>
-        </div>
-        <button 
-          onClick={onCollect}
-          disabled={isSaving || isCollected}
-          className={cn(
-            "flex items-center gap-2 px-6 py-4 rounded-full transition-all shadow-lg active:scale-95",
-            isCollected ? "bg-brand-accent text-brand-bg" : "bg-white/5 text-brand-accent hover:bg-brand-accent/10 border border-brand-accent/20"
-          )}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Collecting...</span>
-            </>
-          ) : isCollected ? (
-            <>
-              <Check className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Collected</span>
-            </>
-          ) : (
-            <>
-              <History className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Collect Entry</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="w-full h-px bg-white/10" />
-
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 opacity-40">
-          <History className="w-3 h-3" />
-          <span className="text-[10px] font-bold uppercase tracking-tighter">Chronicle</span>
-        </div>
-        <p className="text-brand-text/80 leading-relaxed text-lg font-light">
-          {result.history}
-        </p>
-      </div>
-    </div>
-
-    {result.coordinates && (
-      <div className="pt-4 flex items-center justify-between border-t border-white/5">
-        <a 
-          href={`https://www.google.com/maps/dir/?api=1&destination=${result.coordinates.lat},${result.coordinates.lng}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-brand-accent hover:underline text-xs font-bold uppercase tracking-widest"
-        >
-          Navigate
-          <Navigation className="w-4 h-4" />
-        </a>
-        <div className="flex items-center gap-2 text-[10px] opacity-30 font-mono">
-          {result.coordinates.lat.toFixed(4)}, {result.coordinates.lng.toFixed(4)}
-        </div>
-      </div>
-    )}
-  </motion.div>
-);
+import { LENSES } from './utils/constants';
 
 export default function App() {
   // UI State
@@ -572,203 +484,29 @@ export default function App() {
       </AnimatePresence>
 
       {/* Scan Configuration Modal */}
-      <AnimatePresence>
-        {showScanConfig && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-brand-bg/90 backdrop-blur-xl"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="glass w-full max-w-md rounded-[40px] p-8 space-y-8"
-            >
-              <div className="space-y-2 text-center">
-                <h3 className="serif text-4xl glow-text">Scan <span className="italic text-brand-accent">Parameters</span></h3>
-                <p className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Configure your binocular lenses</p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Categories */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Lenses</span>
-                    <p className="text-[8px] opacity-30 uppercase tracking-tighter">Filter historical signatures</p>
-                  </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {LENSES.map(lens => (
-                        <button
-                          key={lens.id}
-                          onClick={() => {
-                            setSelectedCategories(prev => 
-                              prev.includes(lens.id) 
-                                ? prev.filter(id => id !== lens.id)
-                                : [...prev, lens.id]
-                            );
-                          }}
-                          className={cn(
-                            "flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all text-left",
-                            selectedCategories.includes(lens.id)
-                              ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.2)]"
-                              : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{lens.icon}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{lens.label}</span>
-                          </div>
-                          <p className="text-[8px] opacity-50 uppercase tracking-tighter leading-tight">{lens.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                </div>
-
-                {/* Range Slider */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Search Radius</span>
-                      <p className="text-[8px] opacity-30 uppercase tracking-tighter">Extend your historical reach</p>
-                    </div>
-                    <span className="text-brand-accent font-mono text-2xl glow-text">{searchRadius}km</span>
-                  </div>
-                  <div className="relative pt-2">
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="50" 
-                      value={searchRadius}
-                      onChange={(e) => setSearchRadius(parseInt(e.target.value))}
-                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-accent"
-                    />
-                    <div className="flex justify-between mt-2 text-[8px] font-mono opacity-30 uppercase tracking-tighter">
-                      <span>1km</span>
-                      <span>25km</span>
-                      <span>50km</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 flex gap-4">
-                <button 
-                  onClick={() => setShowScanConfig(false)}
-                  className="flex-1 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 hover:bg-white/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => startCamera('scan')}
-                  className="flex-2 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
-                >
-                  Initialize Scan
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ScanConfigModal
+        showScanConfig={showScanConfig}
+        setShowScanConfig={setShowScanConfig}
+        selectedCategories={selectedCategories}
+        setSelectedCategories={setSelectedCategories}
+        searchRadius={searchRadius}
+        setSearchRadius={setSearchRadius}
+        startCamera={startCamera}
+      />
 
       {/* Discovery Toast */}
-      <AnimatePresence>
-        {discovery && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[200] w-full max-w-xs px-6"
-          >
-            <div className="bg-brand-accent text-brand-bg p-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20">
-              <Check className="w-5 h-5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest">Discovery Collected</p>
-                <p className="text-sm font-bold truncate">{discovery}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <DiscoveryToast discovery={discovery} />
 
       {/* Error Toast */}
-      <AnimatePresence>
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -100 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-6"
-          >
-            <div className="bg-brand-bg/90 backdrop-blur-xl border-2 border-red-500/50 text-red-400 p-4 rounded-2xl shadow-2xl flex items-start gap-3">
-              <Info className="w-5 h-5 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs font-bold uppercase tracking-wider mb-1">System Alert</p>
-                <p className="text-sm opacity-80">{error}</p>
-                {error.includes("new tab") && (
-                  <button 
-                    onClick={() => window.open(window.location.href, '_blank')}
-                    className="mt-2 text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline"
-                  >
-                    Open in New Tab
-                  </button>
-                )}
-              </div>
-              <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ErrorToast error={error} setError={setError} />
 
       {/* Header */}
-      <AnimatePresence>
-        {!isCameraActive && (
-          <motion.header 
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            exit={{ y: -100 }}
-            className="p-6 md:p-8 flex justify-between items-center bg-brand-bg/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center text-brand-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                <Compass className="w-5 h-5" aria-hidden="true" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tighter uppercase leading-none glow-text">WBID?</h1>
-                <p className="text-[8px] uppercase tracking-widest opacity-40 font-bold">Welche Burg ist das?</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {user ? (
-                <div className="flex items-center gap-3">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Explorer</p>
-                    <p className="text-[8px] opacity-50 truncate max-w-[100px]">{user.displayName || user.email}</p>
-                  </div>
-                  <button 
-                    onClick={logout}
-                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
-                    aria-label="Logout"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={login}
-                  className="flex items-center gap-2 px-4 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Login
-                </button>
-              )}
-            </div>
-          </motion.header>
-        )}
-      </AnimatePresence>
+      <AppHeader
+        isCameraActive={isCameraActive}
+        user={user}
+        login={login}
+        logout={logout}
+      />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
@@ -876,51 +614,12 @@ export default function App() {
       </main>
 
       {/* Bottom Navigation */}
-      <AnimatePresence>
-        {!isCameraActive && (
-          <motion.nav 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-3rem)] max-w-md"
-          >
-            <div className="glass rounded-full p-2 flex items-center justify-between shadow-2xl border-white/10">
-              <button 
-                onClick={() => setShowChronicle(false)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
-                  !showChronicle ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
-                )}
-                aria-label="Explorer Mode"
-                aria-current={!showChronicle ? 'page' : undefined}
-              >
-                <Compass className="w-5 h-5" aria-hidden="true" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Explorer</span>
-              </button>
-              <button 
-                onClick={() => setShowChronicle(true)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all",
-                  showChronicle ? "bg-brand-accent text-brand-bg shadow-lg" : "text-white/40 hover:text-white"
-                )}
-                aria-label="Chronicle Feed"
-                aria-current={showChronicle ? 'page' : undefined}
-              >
-                <History className="w-5 h-5" aria-hidden="true" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
-                {(collectedLandmarks.length + localLandmarks.length) > 0 && (
-                  <span className={cn(
-                    "px-1.5 rounded-md text-[8px]",
-                    showChronicle ? "bg-brand-bg/20" : "bg-white/10"
-                  )}>
-                    {collectedLandmarks.length + localLandmarks.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      <BottomNav
+        isCameraActive={isCameraActive}
+        showChronicle={showChronicle}
+        setShowChronicle={setShowChronicle}
+        landmarkCount={collectedLandmarks.length + localLandmarks.length}
+      />
 
       <canvas ref={canvasRef} className="hidden" />
     </div>
