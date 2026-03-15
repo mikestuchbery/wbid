@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Loader2, RefreshCw, X, RotateCcw } from 'lucide-react';
 import { NearbyLandmark } from '../types';
@@ -7,7 +7,6 @@ import { cn } from '../utils';
 
 interface CameraViewProps {
   isFetchingNearby: boolean;
-  heading: number | null;
   nearbyLandmarks: NearbyLandmark[];
   isSaving: boolean;
   checkCollected: (name: string, lat: number, lng: number) => boolean;
@@ -15,19 +14,35 @@ interface CameraViewProps {
   onRefresh: () => void;
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  isScanMode: boolean;
+  hasOrientationPermission: boolean | null;
 }
 
 export const CameraView: React.FC<CameraViewProps> = ({
   isFetchingNearby,
-  heading,
   nearbyLandmarks,
   isSaving,
   checkCollected,
   onCollect,
   onRefresh,
   onClose,
-  videoRef
+  videoRef,
+  isScanMode,
+  hasOrientationPermission
 }) => {
+  const [heading, setHeading] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      const compass = (e as any).webkitCompassHeading || (360 - (e.alpha || 0));
+      setHeading(compass);
+    };
+    if (isScanMode && hasOrientationPermission) {
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [isScanMode, hasOrientationPermission]);
+
   // Calculate vertical offsets to prevent overlapping
   const organizedLandmarks = React.useMemo(() => {
     if (heading === null) return [];
