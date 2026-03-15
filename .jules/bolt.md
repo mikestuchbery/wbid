@@ -1,0 +1,3 @@
+## 2024-05-15 - [Moved high-frequency deviceorientation state down to child component]
+**Learning:** Found a massive React performance bottleneck where `deviceorientation` events (firing 60 times a second) updated a `heading` state at the root `App.tsx` level, causing the entire application (including complex UI like FeedSystem, AnimatePresence, ResultCard) to re-render constantly.
+**Action:** Always verify where high-frequency event listeners (like scroll, mousemove, or device orientation) are attached and where their corresponding state lives. Move state as far down the React tree as possible to isolate re-renders.

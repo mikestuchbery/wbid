@@ -139,7 +139,6 @@ export default function App() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
   const [nearbyLandmarks, setNearbyLandmarks] = useState<NearbyLandmark[]>([]);
-  const [heading, setHeading] = useState<number | null>(null);
   const [isFetchingNearby, setIsFetchingNearby] = useState(false);
   const [hasOrientationPermission, setHasOrientationPermission] = useState<boolean | null>(null);
   const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
@@ -331,11 +330,13 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  const allLandmarks = useMemo(() => [...collectedLandmarks, ...localLandmarks], [collectedLandmarks, localLandmarks]);
+
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [allLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -370,17 +371,6 @@ export default function App() {
   }, []);
 
   useEffect(() => { getGPSLocation(); }, [getGPSLocation]);
-
-  useEffect(() => {
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      const compass = (e as any).webkitCompassHeading || (360 - (e.alpha || 0));
-      setHeading(compass);
-    };
-    if (isScanMode && hasOrientationPermission) {
-      window.addEventListener('deviceorientation', handleOrientation);
-    }
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, [isScanMode, hasOrientationPermission]);
 
   const requestOrientationPermission = async () => {
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
@@ -559,7 +549,6 @@ export default function App() {
         {isCameraActive && (
           <CameraView 
             isFetchingNearby={isFetchingNearby}
-            heading={heading}
             nearbyLandmarks={nearbyLandmarks}
             isSaving={isSaving}
             checkCollected={isLandmarkCollected}
@@ -567,6 +556,8 @@ export default function App() {
             onRefresh={fetchNearby}
             onClose={stopCamera}
             videoRef={videoRef}
+            isScanMode={isScanMode}
+            hasOrientationPermission={hasOrientationPermission}
           />
         )}
       </AnimatePresence>
