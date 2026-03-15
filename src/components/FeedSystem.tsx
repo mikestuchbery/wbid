@@ -78,6 +78,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                       onClick={() => onDelete(lm.id)}
                       className="p-3 bg-black/40 backdrop-blur-md rounded-full text-red-400 hover:bg-red-500 hover:text-white transition-all active:scale-90 border border-white/10"
                       title="Delete Entry"
+                      aria-label="Delete entry"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
