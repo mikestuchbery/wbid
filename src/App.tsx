@@ -331,11 +331,21 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt Performance Optimization:
+  // Memoize the combined landmarks array and the isLandmarkCollected function
+  // to prevent O(n) array spreading on every render/check, drastically reducing
+  // unnecessary work during high-frequency camera view updates.
+  const allCollectedLandmarks = useMemo(
+    () => [...collectedLandmarks, ...localLandmarks],
+    [collectedLandmarks, localLandmarks]
+  );
+
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allCollectedLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [allCollectedLandmarks]);
+
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
