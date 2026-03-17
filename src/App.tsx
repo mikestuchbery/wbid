@@ -331,11 +331,19 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // Memoize the combined landmarks array to prevent re-allocating memory and garbage collection
+  // thrashing when heading state updates up to 60 times a second during AR scan mode.
+  // This also prevents breaking useMemo internally in <FeedSystem /> when App.tsx re-renders.
+  const allLandmarks = useMemo(
+    () => [...collectedLandmarks, ...localLandmarks],
+    [collectedLandmarks, localLandmarks]
+  );
+
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [allLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -773,7 +781,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
+            landmarks={allLandmarks}
             onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
             userLocation={location}
           />
