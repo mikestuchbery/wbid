@@ -268,6 +268,14 @@ export default function App() {
     }
   };
 
+  // ⚡ Bolt Optimization: Memoize combined arrays
+  // 💡 What: Prevents recreation of [...collectedLandmarks, ...localLandmarks] on every render
+  // 🎯 Why: App re-renders up to 60fps during AR deviceorientation. Spreading large arrays every frame causes massive garbage collection thrashing.
+  // 📊 Impact: O(1) memory allocation vs O(N) memory allocation per frame when scanning.
+  const combinedLandmarks = useMemo(() => {
+    return [...collectedLandmarks, ...localLandmarks];
+  }, [collectedLandmarks, localLandmarks]);
+
   const collectNearbyLandmark = async (lm: NearbyLandmark) => {
     setIsSaving(true);
     try {
@@ -331,11 +339,15 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt Optimization: Memoize callback passed to child components
+  // 💡 What: Wraps isLandmarkCollected in useCallback.
+  // 🎯 Why: This function is passed down to ResultCard and CameraView (which maps it over multiple POIMarkers). Without memoization, it breaks child component memoization and causes cascading re-renders.
+  // 📊 Impact: Stabilizes reference identity for child components during high-frequency parent state updates.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return combinedLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [combinedLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -773,7 +785,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
+            landmarks={combinedLandmarks}
             onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
             userLocation={location}
           />
@@ -908,12 +920,12 @@ export default function App() {
               >
                 <History className="w-5 h-5" aria-hidden="true" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
-                {(collectedLandmarks.length + localLandmarks.length) > 0 && (
+                {combinedLandmarks.length > 0 && (
                   <span className={cn(
                     "px-1.5 rounded-md text-[8px]",
                     showChronicle ? "bg-brand-bg/20" : "bg-white/10"
                   )}>
-                    {collectedLandmarks.length + localLandmarks.length}
+                    {combinedLandmarks.length}
                   </span>
                 )}
               </button>

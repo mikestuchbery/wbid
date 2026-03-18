@@ -1,0 +1,3 @@
+## 2025-02-28 - [High-Frequency Parent State Thrashing]
+**Learning:** High-frequency state updates in a parent component (like `setHeading` triggered by `deviceorientation` events firing at up to 60fps) cause all un-memoized child properties, inline functions, and arrays to be recreated constantly. In `App.tsx`, `CameraView`'s child props (like `isLandmarkCollected`) were recreating the combined landmarks array (`[...collectedLandmarks, ...localLandmarks]`) every frame.
+**Action:** Always strictly memoize arrays (`useMemo`) and callbacks (`useCallback`) in parent components that orchestrate rapid state updates, particularly when those references are passed into complex child hierarchies or mapped over in lists.
