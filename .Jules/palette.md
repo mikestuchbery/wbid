@@ -1,0 +1,3 @@
+## 2024-05-24 - Guarding Destructive Actions
+**Learning:** Found a missing safety layer for destructive interactions (e.g. deleting a discovery from the chronicle feed). Mobile-prone applications with absolute positioned UI elements have a high potential for accidental clicks, risking unintended data loss when no confirmation prompts are implemented.
+**Action:** Always wrap delete interactions and destructive actions in a simple `window.confirm` to allow user confirmation. Additionally, provide clear semantic context (`aria-label`, `title`) and keyboard focus outlines (`focus-visible:ring-2`) to those elements.
