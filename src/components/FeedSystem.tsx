@@ -14,7 +14,7 @@ interface ProcessedLandmark extends CollectedLandmark {
   distanceString: string | null;
 }
 
-export const FeedSystem: React.FC<FeedSystemProps> = ({ 
+export const FeedSystem: React.FC<FeedSystemProps> = React.memo(({
   landmarks, 
   onDelete,
   userLocation
@@ -146,4 +146,4 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
       </div>
     </div>
   );
-};
+});

@@ -17,7 +17,7 @@ interface CameraViewProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
-export const CameraView: React.FC<CameraViewProps> = ({
+export const CameraView: React.FC<CameraViewProps> = React.memo(({
   isFetchingNearby,
   heading,
   nearbyLandmarks,
@@ -147,4 +147,4 @@ export const CameraView: React.FC<CameraViewProps> = ({
       <div className="absolute inset-0 pointer-events-none scanline opacity-30 z-20" />
     </div>
   );
-};
+});
