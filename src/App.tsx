@@ -641,9 +641,10 @@ export default function App() {
                       max="50" 
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(parseInt(e.target.value))}
-                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                      aria-label="Search Radius"
+                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-accent focus-visible:ring-2 focus-visible:outline-none"
                     />
-                    <div className="flex justify-between mt-2 text-[8px] font-mono opacity-30 uppercase tracking-tighter">
+                    <div className="flex justify-between mt-2 text-[8px] font-mono opacity-30 uppercase tracking-tighter" aria-hidden="true">
                       <span>1km</span>
                       <span>25km</span>
                       <span>50km</span>
