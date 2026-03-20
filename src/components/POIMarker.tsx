@@ -13,7 +13,8 @@ interface POIMarkerProps {
   verticalOffset?: number;
 }
 
-export const POIMarker: React.FC<POIMarkerProps> = ({ 
+// ⚡ Bolt: Wrapped POIMarker in React.memo to prevent re-renders when parent heading changes but bearing diff is unaffected
+export const POIMarker: React.FC<POIMarkerProps> = React.memo(({
   landmark, 
   heading, 
   isSaving, 
@@ -127,4 +128,4 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
       />
     </motion.div>
   );
-};
+});
