@@ -1,0 +1,3 @@
+## 2024-05-18 - [Device Orientation Re-renders]
+**Learning:** The `deviceorientation` event listener in `App.tsx` fires up to 60 times a second, updating the `heading` state. If components are not memoized, this causes the entire React tree to re-render, creating a significant performance bottleneck and jank.
+**Action:** When working with high-frequency state updates like device sensors, aggressively use `React.memo` on child components and ensure all props passed down (arrays, objects, callbacks) are strictly memoized via `useMemo` and `useCallback` to prevent breaking memoization equality checks. Use functional state updates to avoid adding rapidly changing dependencies to `useCallback` arrays.
