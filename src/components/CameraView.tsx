@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Loader2, RefreshCw, X, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Loader2, RefreshCw, X, RotateCcw, Target, Camera, Check } from 'lucide-react';
 import { NearbyLandmark } from '../types';
 import { POIMarker } from './POIMarker';
 import { cn } from '../utils';
@@ -61,6 +61,29 @@ export const CameraView: React.FC<CameraViewProps> = ({
     return results;
   }, [nearbyLandmarks, heading]);
 
+  // Find the "best" target (closest to center)
+  const activeTarget = React.useMemo(() => {
+    if (heading === null) return null;
+    
+    let bestLm: NearbyLandmark | null = null;
+    let minDiff = 5.1; // Must be within 5 degrees to be "lockable"
+
+    nearbyLandmarks.forEach(lm => {
+      if (lm.bearing === undefined) return;
+      let diff = Math.abs(lm.bearing - heading);
+      if (diff > 180) diff = 360 - diff;
+      
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestLm = lm;
+      }
+    });
+
+    return bestLm;
+  }, [nearbyLandmarks, heading]);
+
+  const isTargetCollected = activeTarget ? checkCollected(activeTarget.name, activeTarget.lat, activeTarget.lng) : false;
+
   return (
     <div className="fixed inset-0 bg-black z-50 overflow-hidden">
       {/* Camera Feed */}
@@ -78,18 +101,68 @@ export const CameraView: React.FC<CameraViewProps> = ({
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Central Reticle */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-48 h-48">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-brand-accent/30 rounded-tl-2xl" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-brand-accent/30 rounded-tr-2xl" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-brand-accent/30 rounded-bl-2xl" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-brand-accent/30 rounded-br-2xl" />
+            <motion.div 
+              animate={{ 
+                scale: activeTarget ? 1.1 : 1,
+                borderColor: activeTarget ? 'rgba(212,175,55,0.8)' : 'rgba(212,175,55,0.3)'
+              }}
+              className="relative w-48 h-48 transition-colors"
+            >
+              <div className={cn(
+                "absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 rounded-tl-2xl transition-colors",
+                activeTarget ? "border-brand-accent" : "border-brand-accent/30"
+              )} />
+              <div className={cn(
+                "absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 rounded-tr-2xl transition-colors",
+                activeTarget ? "border-brand-accent" : "border-brand-accent/30"
+              )} />
+              <div className={cn(
+                "absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 rounded-bl-2xl transition-colors",
+                activeTarget ? "border-brand-accent" : "border-brand-accent/30"
+              )} />
+              <div className={cn(
+                "absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 rounded-br-2xl transition-colors",
+                activeTarget ? "border-brand-accent" : "border-brand-accent/30"
+              )} />
               
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-1 h-1 bg-brand-accent rounded-full shadow-[0_0_10px_#D4AF37]" />
+                <motion.div 
+                  animate={{ 
+                    scale: activeTarget ? [1, 1.8, 1] : 1,
+                    opacity: activeTarget ? [0.6, 1, 0.6] : 0.5,
+                    backgroundColor: activeTarget ? 'rgba(212,175,55,1)' : 'rgba(212,175,55,1)'
+                  }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    duration: activeTarget ? 0.8 : 1.5,
+                    ease: "easeInOut"
+                  }}
+                  className="w-2.5 h-2.5 bg-brand-accent rounded-full shadow-[0_0_20px_#D4AF37]" 
+                />
                 <div className="absolute w-12 h-[1px] bg-brand-accent/20" />
                 <div className="absolute h-12 w-[1px] bg-brand-accent/20" />
               </div>
-            </div>
+
+              {activeTarget && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap text-center"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-accent glow-text">
+                    Target Locked
+                  </p>
+                  <p className="text-xs font-bold text-white mt-1">
+                    {activeTarget.name}
+                  </p>
+                  {activeTarget.distance !== undefined && (
+                    <p className="text-[10px] font-mono text-brand-accent/80 mt-1">
+                      Range: {activeTarget.distance < 1 ? `${(activeTarget.distance * 1000).toFixed(0)}m` : `${activeTarget.distance.toFixed(2)}km`}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
           </div>
 
           {/* Status Indicators */}
@@ -124,24 +197,84 @@ export const CameraView: React.FC<CameraViewProps> = ({
         </div>
 
         {/* Controls */}
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 z-30">
-          <button 
-            onClick={onRefresh}
-            disabled={isFetchingNearby}
-            className="p-5 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50"
-            aria-label="Refresh Nearby Landmarks"
-          >
-            <RotateCcw className={cn("w-6 h-6", isFetchingNearby && "animate-spin")} />
-          </button>
-          <button 
-            onClick={onClose} 
-            className="p-5 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
-            aria-label="Close Camera"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-8 z-30">
+          {/* Main Capture Button */}
+          <div className="relative">
+            <AnimatePresence>
+              {activeTarget && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                  className="absolute -top-12 left-1/2 -translate-x-1/2"
+                >
+                  <div className="glass px-4 py-1.5 rounded-full border border-brand-accent/30 flex items-center gap-2">
+                    <Target className="w-3 h-3 text-brand-accent" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-brand-accent">
+                      {isTargetCollected ? 'Already Discovered' : 'Ready to Capture'}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button
+              onClick={() => activeTarget && !isTargetCollected && onCollect(activeTarget)}
+              disabled={!activeTarget || isSaving || isTargetCollected}
+              className={cn(
+                "w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 border-4",
+                activeTarget && !isTargetCollected
+                  ? "bg-brand-accent border-white/20 shadow-[0_0_30px_rgba(212,175,55,0.6)]"
+                  : "bg-white/5 border-white/10 opacity-50"
+              )}
+            >
+              {isSaving ? (
+                <Loader2 className="w-8 h-8 animate-spin text-brand-bg" />
+              ) : isTargetCollected ? (
+                <Check className="w-8 h-8 text-white" />
+              ) : (
+                <Camera className={cn("w-8 h-8", activeTarget ? "text-brand-bg" : "text-white/30")} />
+              )}
+            </button>
+          </div>
+
+          <div className="flex justify-center gap-6">
+            <button 
+              onClick={onRefresh}
+              disabled={isFetchingNearby}
+              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50"
+              aria-label="Refresh Nearby Landmarks"
+            >
+              <RotateCcw className={cn("w-5 h-5", isFetchingNearby && "animate-spin")} />
+            </button>
+            <button 
+              onClick={onClose} 
+              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
+              aria-label="Close Camera"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isSaving && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-brand-accent/10 backdrop-blur-[2px] z-40 flex items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+              <p className="text-brand-accent font-bold uppercase tracking-[0.3em] text-xs glow-text">
+                Synchronizing History...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scanline Effect */}
       <div className="absolute inset-0 pointer-events-none scanline opacity-30 z-20" />

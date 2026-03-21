@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { History, MapPin, Navigation, Trash2, Calendar, Tag } from 'lucide-react';
 import { CollectedLandmark } from '../types';
-import { cn, calculateDistance, formatDistance } from '../utils';
+import { cn } from '../utils';
 
 interface FeedSystemProps {
   landmarks: CollectedLandmark[];
@@ -10,32 +10,11 @@ interface FeedSystemProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
-interface ProcessedLandmark extends CollectedLandmark {
-  distanceString: string | null;
-}
-
 export const FeedSystem: React.FC<FeedSystemProps> = ({ 
   landmarks, 
   onDelete,
   userLocation
 }) => {
-  const processedLandmarks = useMemo<ProcessedLandmark[]>(() => {
-    return [...landmarks]
-      .sort((a, b) => {
-        const timeA = a.collectedAt?.seconds || 0;
-        const timeB = b.collectedAt?.seconds || 0;
-        return timeB - timeA;
-      })
-      .map(lm => {
-        let distanceString = null;
-        if (userLocation) {
-          const dist = calculateDistance(lm.lat, lm.lng, userLocation.lat, userLocation.lng);
-          distanceString = formatDistance(dist);
-        }
-        return { ...lm, distanceString };
-      });
-  }, [landmarks, userLocation]);
-
   return (
     <div className="space-y-8 pb-32">
       <header className="space-y-2">
@@ -45,7 +24,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
 
       <div className="grid gap-6">
         <AnimatePresence mode="popLayout">
-          {processedLandmarks.length === 0 ? (
+          {landmarks.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -55,7 +34,11 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
               <p className="serif italic opacity-40 text-xl">No discoveries recorded yet...</p>
             </motion.div>
           ) : (
-            processedLandmarks.map((lm) => (
+            [...landmarks].sort((a, b) => {
+              const timeA = a.collectedAt?.seconds || 0;
+              const timeB = b.collectedAt?.seconds || 0;
+              return timeB - timeA;
+            }).map((lm) => (
               <motion.div
                 key={lm.id}
                 layout
@@ -107,10 +90,20 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                         <MapPin className="w-3.5 h-3.5 text-brand-accent" />
                         {lm.lat.toFixed(4)}, {lm.lng.toFixed(4)}
                       </div>
-                      {lm.distanceString && (
+                      {userLocation && (
                         <div className="flex items-center gap-1.5 text-brand-accent/60">
                           <Navigation className="w-3.5 h-3.5" />
-                          {lm.distanceString}
+                          {(() => {
+                            const R = 6371;
+                            const dLat = (lm.lat - userLocation.lat) * Math.PI / 180;
+                            const dLon = (lm.lng - userLocation.lng) * Math.PI / 180;
+                            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                      Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(lm.lat * Math.PI / 180) * 
+                                      Math.sin(dLon/2) * Math.sin(dLon/2);
+                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            const dist = R * c;
+                            return dist < 1 ? `${(dist * 1000).toFixed(0)}m` : `${dist.toFixed(1)}km`;
+                          })()}
                         </div>
                       )}
                     </div>

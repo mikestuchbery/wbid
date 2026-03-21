@@ -42,10 +42,10 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
         y: (isLockedOn ? -20 : isInTargetCone ? -10 : 0) + verticalOffset,
         zIndex: isLockedOn ? 30 : isInTargetCone ? 20 : 10
       }} 
-      className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2" 
+      className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none" 
       style={{ left: `${(diff / 30) * 50 + 50}%` }}
     >
-      <div className="relative pointer-events-auto">
+      <div className="relative">
         {/* Targeting Brackets */}
         {isInTargetCone && (
           <motion.div 
@@ -69,52 +69,29 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
           </motion.div>
         )}
 
-        <button 
-          onClick={() => onCollect(landmark)}
-          disabled={isSaving}
-          className={cn(
-            "glass px-5 py-3 rounded-2xl shadow-2xl flex flex-col items-center transition-all active:scale-95 disabled:opacity-50",
-            isInTargetCone ? "border-brand-accent/60 bg-brand-accent/20" : "border-white/10",
-            isLockedOn && "ring-2 ring-brand-accent/60 shadow-[0_0_30px_rgba(212,175,55,0.6)]"
-          )}
-        >
+        <div className={cn(
+          "glass px-4 py-2 rounded-xl shadow-2xl flex flex-col items-center border transition-all",
+          isInTargetCone ? "border-brand-accent/60 bg-brand-accent/20" : "border-white/10",
+          isLockedOn && "ring-1 ring-brand-accent/60 shadow-[0_0_20px_rgba(212,175,55,0.4)]"
+        )}>
           <span className={cn(
-            "text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors",
+            "text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors",
             isInTargetCone ? "text-brand-accent" : "text-brand-accent/60"
           )}>
             {landmark.name}
           </span>
           {landmark.distance !== undefined && (
-            <span className="text-[9px] font-mono opacity-70 mt-0.5">
+            <span className="text-[8px] font-mono opacity-70 mt-0.5">
               {landmark.distance < 1 ? `${(landmark.distance * 1000).toFixed(0)}m` : `${landmark.distance.toFixed(1)}km`}
             </span>
           )}
-          {isSaving ? (
-            <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-brand-accent/20 rounded-full border border-brand-accent/30">
-              <Loader2 className="w-3 h-3 animate-spin text-brand-accent" />
-              <span className="text-[8px] font-bold uppercase tracking-widest text-brand-accent">Recording...</span>
-            </div>
-          ) : isCollected ? (
-            <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
-              <Check className="w-3 h-3" />
-              <span className="text-[8px] font-bold uppercase tracking-widest">
-                Discovered
-              </span>
-            </div>
-          ) : isInTargetCone ? (
-            <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-full shadow-lg transform hover:scale-105 transition-transform">
-              <Check className="w-3 h-3" />
-              <span className="text-[8px] font-bold uppercase tracking-widest">
-                Collect Site
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 mt-1 opacity-30">
-              <MapPin className="w-2 h-2" />
-              <span className="text-[7px] font-bold uppercase tracking-tighter">Target to Collect</span>
+          {isCollected && (
+            <div className="flex items-center gap-1 mt-1 text-green-400">
+              <Check className="w-2 h-2" />
+              <span className="text-[7px] font-bold uppercase tracking-widest">Discovered</span>
             </div>
           )}
-        </button>
+        </div>
       </div>
       
       <motion.div 

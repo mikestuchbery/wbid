@@ -5,6 +5,8 @@ export interface LandmarkInfo {
   date: string;
   category: string;
   history: string;
+  detailedHistory?: string;
+  architecturalStyle?: string;
   coordinates?: { lat: number; lng: number };
 }
 

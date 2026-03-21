@@ -1,5 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Camera, MapPin, History, Info, Loader2, X, Compass, 
@@ -147,9 +146,6 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // --- AI Logic (Cached Instance) ---
-  const ai = useMemo(() => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! }), []);
-
   // --- Data Logic ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -193,7 +189,7 @@ export default function App() {
     }
   }, []);
 
-  const saveToLocal = (landmark: Omit<CollectedLandmark, 'id' | 'uid' | 'collectedAt'> & { uid?: string }) => {
+  const saveToLocal = (landmark: any) => {
     const newLandmark: CollectedLandmark = {
       ...landmark,
       id: `local_${Date.now()}`,
@@ -214,9 +210,15 @@ export default function App() {
   const login = async () => {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login failed:", err);
-      setError("Authentication failed.");
+      if (err.code === 'auth/popup-blocked') {
+        setError("Login popup was blocked. Please allow popups or open the app in a new tab.");
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setError("Login was cancelled.");
+      } else {
+        setError(`Authentication failed: ${err.message || 'Unknown error'}. Try opening in a new tab.`);
+      }
     }
   };
 
@@ -272,26 +274,15 @@ export default function App() {
     setIsSaving(true);
     try {
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
-      const prompt = `Provide a brief historical chronicle (1 paragraph, max 1500 characters), category, and estimated date for the landmark: ${lm.name} at ${lm.lat}, ${lm.lng}. ${activeLenses ? `The user is currently focused on these historical eras/types: ${activeLenses}.` : ''} Ensure the history is accurate and engaging.`;
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ text: prompt }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              history: { type: Type.STRING },
-              category: { type: Type.STRING },
-              date: { type: Type.STRING }
-            },
-            required: ["history", "category", "date"]
-          }
-        }
+      const response = await fetch('/api/analyze-landmark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: lm.name, lat: lm.lat, lng: lm.lng, activeLenses })
       });
       
-      const info = JSON.parse(response.text);
+      if (!response.ok) throw new Error('Failed to analyze landmark');
+      const info = await response.json();
       
       const landmarkData = {
         uid: user?.uid || 'public',
@@ -482,37 +473,15 @@ export default function App() {
     setError(null);
     try {
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
-      const prompt = `Identify this historical landmark from the image. Current GPS: ${location?.lat}, ${location?.lng}. ${activeLenses ? `The user is currently interested in these historical eras: ${activeLenses}.` : ''} Provide a detailed historical chronicle (max 1500 characters).`;
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ 
-          parts: [
-            { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] } }, 
-            { text: prompt }
-          ] 
-        }],
-        config: { 
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              date: { type: Type.STRING },
-              category: { type: Type.STRING },
-              history: { type: Type.STRING },
-              coordinates: {
-                type: Type.OBJECT,
-                properties: { lat: { type: Type.NUMBER }, lng: { type: Type.NUMBER } },
-                required: ["lat", "lng"]
-              }
-            },
-            required: ["name", "date", "category", "history", "coordinates"]
-          }
-        }
+      const response = await fetch('/api/analyze-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, location, activeLenses })
       });
-      const data = JSON.parse(response.text);
+      
+      if (!response.ok) throw new Error('Failed to analyze image');
+      const data = await response.json();
       setResult(data);
 
       // Automatically save to feed
@@ -626,27 +595,61 @@ export default function App() {
                 </div>
 
                 {/* Range Slider */}
-                <div className="space-y-4">
+                <div className="space-y-6 bg-white/5 p-6 rounded-3xl border border-white/5">
                   <div className="flex justify-between items-end">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Search Radius</span>
-                      <p className="text-[8px] opacity-30 uppercase tracking-tighter">Extend your historical reach</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent/80">Search Radius</span>
+                      </div>
+                      <p className="text-[8px] opacity-30 uppercase tracking-tighter">Adjusting signal range for historical detection</p>
                     </div>
-                    <span className="text-brand-accent font-mono text-2xl glow-text">{searchRadius}km</span>
+                    <div className="text-right">
+                      <span className="text-brand-accent font-mono text-3xl glow-text leading-none">{searchRadius}</span>
+                      <span className="text-[10px] font-bold text-brand-accent/40 ml-1 uppercase">km</span>
+                    </div>
                   </div>
-                  <div className="relative pt-2">
+                  
+                  <div className="relative pt-4 px-2">
+                    {/* Tick Marks */}
+                    <div className="absolute top-0 left-2 right-2 flex justify-between px-0.5">
+                      {[...Array(11)].map((_, i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "w-[1px] h-1.5 transition-colors",
+                            (i * 5) <= searchRadius ? "bg-brand-accent/40" : "bg-white/10"
+                          )} 
+                        />
+                      ))}
+                    </div>
+
                     <input 
                       type="range" 
                       min="1" 
                       max="50" 
+                      step="1"
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(parseInt(e.target.value))}
-                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                      className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-brand-accent relative z-10"
                     />
-                    <div className="flex justify-between mt-2 text-[8px] font-mono opacity-30 uppercase tracking-tighter">
-                      <span>1km</span>
-                      <span>25km</span>
-                      <span>50km</span>
+                    
+                    <div className="flex justify-between mt-4 text-[7px] font-mono opacity-30 uppercase tracking-[0.2em]">
+                      <span className={searchRadius >= 1 ? "text-brand-accent opacity-100" : ""}>Local</span>
+                      <span className={searchRadius >= 25 ? "text-brand-accent opacity-100" : ""}>Regional</span>
+                      <span className={searchRadius >= 50 ? "text-brand-accent opacity-100" : ""}>Extended</span>
+                    </div>
+                  </div>
+
+                  {/* Coverage Stats */}
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-bold uppercase tracking-widest opacity-30">Est. Coverage</span>
+                      <p className="text-[10px] font-mono text-white/60">{(Math.PI * Math.pow(searchRadius, 2)).toFixed(0)} km²</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <span className="text-[7px] font-bold uppercase tracking-widest opacity-30">Signal Strength</span>
+                      <p className="text-[10px] font-mono text-white/60">{searchRadius > 40 ? 'Low' : searchRadius > 20 ? 'Medium' : 'High'}</p>
                     </div>
                   </div>
                 </div>
@@ -742,29 +745,41 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-3">
-              {user ? (
-                <div className="flex items-center gap-3">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Explorer</p>
-                    <p className="text-[8px] opacity-50 truncate max-w-[100px]">{user.displayName || user.email}</p>
-                  </div>
-                  <button 
-                    onClick={logout}
-                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
-                    aria-label="Logout"
+              <AnimatePresence mode="wait">
+                {user ? (
+                  <motion.div 
+                    key="user-profile"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="flex items-center gap-3"
                   >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={login}
-                  className="flex items-center gap-2 px-4 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Login
-                </button>
-              )}
+                    <div className="text-right hidden sm:block">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Explorer</p>
+                      <p className="text-[8px] opacity-50 truncate max-w-[100px]">{user.displayName || user.email}</p>
+                    </div>
+                    <button 
+                      onClick={logout}
+                      className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+                      aria-label="Logout"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.button 
+                    key="login-btn"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    onClick={login}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Login
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
           </motion.header>
         )}
