@@ -10,7 +10,7 @@ import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { 
   collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc, where 
 } from 'firebase/firestore';
-import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 // Types & Components
 import { LandmarkInfo, CollectedLandmark, NearbyLandmark, LocationStatus } from './types';
@@ -148,6 +148,9 @@ export default function App() {
 
   // --- Data Logic ---
   useEffect(() => {
+    // Handle redirect result from signInWithRedirect (popup-blocked fallback)
+    getRedirectResult(auth).catch(() => {/* redirect result unavailable, ignore */});
+
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setIsAuthReady(true);
@@ -208,16 +211,22 @@ export default function App() {
   };
 
   const login = async () => {
+    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithPopup(auth, provider);
     } catch (err: any) {
       console.error("Login failed:", err);
-      if (err.code === 'auth/popup-blocked') {
-        setError("Login popup was blocked. Please allow popups or open the app in a new tab.");
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+        // Fall back to redirect flow (works in all environments)
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectErr: any) {
+          setError(`Authentication failed: ${redirectErr.message || 'Unknown error'}.`);
+        }
       } else if (err.code === 'auth/cancelled-popup-request') {
-        setError("Login was cancelled.");
+        // User dismissed — no error needed
       } else {
-        setError(`Authentication failed: ${err.message || 'Unknown error'}. Try opening in a new tab.`);
+        setError(`Authentication failed: ${err.message || 'Unknown error'}.`);
       }
     }
   };
@@ -543,55 +552,65 @@ export default function App() {
       {/* Scan Configuration Modal */}
       <AnimatePresence>
         {showScanConfig && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-brand-bg/90 backdrop-blur-xl"
+            className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-brand-bg/90 backdrop-blur-xl"
+            onClick={() => setShowScanConfig(false)}
           >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="glass w-full max-w-md rounded-[40px] p-8 space-y-8"
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="glass w-full sm:max-w-md rounded-t-[40px] sm:rounded-[40px] flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="space-y-2 text-center">
-                <h3 className="serif text-4xl glow-text">Scan <span className="italic text-brand-accent">Parameters</span></h3>
-                <p className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Configure your binocular lenses</p>
+              {/* Drag handle (mobile) */}
+              <div className="flex justify-center pt-4 pb-2 sm:hidden shrink-0">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
 
-              <div className="space-y-6">
+              {/* Scrollable content */}
+              <div className="overflow-y-auto flex-1 px-8 pt-4 pb-2 space-y-6">
+                <div className="space-y-2 text-center">
+                  <h3 className="serif text-4xl glow-text">Scan <span className="italic text-brand-accent">Parameters</span></h3>
+                  <p className="text-[10px] font-mono opacity-50 uppercase tracking-widest">Configure your binocular lenses</p>
+                </div>
+
                 {/* Categories */}
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Lenses</span>
                     <p className="text-[10px] opacity-40 uppercase tracking-wider">Filter historical signatures</p>
                   </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {LENSES.map(lens => (
-                        <button
-                          key={lens.id}
-                          onClick={() => {
-                            setSelectedCategories(prev => 
-                              prev.includes(lens.id) 
-                                ? prev.filter(id => id !== lens.id)
-                                : [...prev, lens.id]
-                            );
-                          }}
-                          className={cn(
-                            "flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all text-left",
-                            selectedCategories.includes(lens.id)
-                              ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.2)]"
-                              : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{lens.icon}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{lens.label}</span>
-                          </div>
-                          <p className="text-[10px] opacity-50 uppercase tracking-wider leading-tight">{lens.description}</p>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {LENSES.map(lens => (
+                      <button
+                        key={lens.id}
+                        onClick={() => {
+                          setSelectedCategories(prev =>
+                            prev.includes(lens.id)
+                              ? prev.filter(id => id !== lens.id)
+                              : [...prev, lens.id]
+                          );
+                        }}
+                        className={cn(
+                          "flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all text-left",
+                          selectedCategories.includes(lens.id)
+                            ? "bg-brand-accent/20 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+                            : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{lens.icon}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest">{lens.label}</span>
+                        </div>
+                        <p className="text-[10px] opacity-50 uppercase tracking-wider leading-tight">{lens.description}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Range Slider */}
@@ -609,31 +628,28 @@ export default function App() {
                       <span className="text-[10px] font-bold text-brand-accent/40 ml-1 uppercase">km</span>
                     </div>
                   </div>
-                  
+
                   <div className="relative pt-4 px-2">
-                    {/* Tick Marks */}
                     <div className="absolute top-0 left-2 right-2 flex justify-between px-0.5">
                       {[...Array(11)].map((_, i) => (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           className={cn(
                             "w-[1px] h-1.5 transition-colors",
                             (i * 5) <= searchRadius ? "bg-brand-accent/40" : "bg-white/10"
-                          )} 
+                          )}
                         />
                       ))}
                     </div>
-
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="50" 
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
                       step="1"
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(parseInt(e.target.value))}
                       className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-brand-accent relative z-10"
                     />
-                    
                     <div className="flex justify-between mt-4 text-[10px] font-mono opacity-40 uppercase tracking-widest">
                       <span className={searchRadius >= 1 ? "text-brand-accent opacity-100" : ""}>Local</span>
                       <span className={searchRadius >= 25 ? "text-brand-accent opacity-100" : ""}>Regional</span>
@@ -641,7 +657,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Coverage Stats */}
                   <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Est. Coverage</span>
@@ -655,14 +670,15 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-4">
-                <button 
+              {/* Sticky action buttons */}
+              <div className="shrink-0 px-8 py-6 flex gap-4 border-t border-white/5">
+                <button
                   onClick={() => setShowScanConfig(false)}
                   className="flex-1 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => startCamera('scan')}
                   className="flex-1 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
                 >
@@ -708,14 +724,6 @@ export default function App() {
               <div className="flex-1">
                 <p className="text-xs font-bold uppercase tracking-wider mb-1">System Alert</p>
                 <p className="text-sm opacity-80">{error}</p>
-                {error.includes("new tab") && (
-                  <button 
-                    onClick={() => window.open(window.location.href, '_blank')}
-                    className="mt-2 text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline"
-                  >
-                    Open in New Tab
-                  </button>
-                )}
               </div>
               <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
                 <X className="w-4 h-4" />
