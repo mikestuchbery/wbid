@@ -1,0 +1,3 @@
+## 2024-05-18 - Destructive Actions in Location-Based Apps
+**Learning:** In location-based apps where users travel physically to collect data (like landmarks), accidental deletion is extremely painful since re-collecting requires traveling back to the site. Destructive actions for such hard-earned user data must always be guarded with confirmation prompts.
+**Action:** Always add `window.confirm` (or equivalent dialogs) to delete buttons for user-collected physical location data, and ensure these buttons have proper `aria-label`s and `focus-visible` styles for accessibility.
