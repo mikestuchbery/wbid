@@ -564,7 +564,7 @@ export default function App() {
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Lenses</span>
-                    <p className="text-[8px] opacity-30 uppercase tracking-tighter">Filter historical signatures</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-wider">Filter historical signatures</p>
                   </div>
                     <div className="grid grid-cols-2 gap-3">
                       {LENSES.map(lens => (
@@ -588,7 +588,7 @@ export default function App() {
                             <span className="text-xl">{lens.icon}</span>
                             <span className="text-[10px] font-bold uppercase tracking-widest">{lens.label}</span>
                           </div>
-                          <p className="text-[8px] opacity-50 uppercase tracking-tighter leading-tight">{lens.description}</p>
+                          <p className="text-[10px] opacity-50 uppercase tracking-wider leading-tight">{lens.description}</p>
                         </button>
                       ))}
                     </div>
@@ -602,7 +602,7 @@ export default function App() {
                         <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent/80">Search Radius</span>
                       </div>
-                      <p className="text-[8px] opacity-30 uppercase tracking-tighter">Adjusting signal range for historical detection</p>
+                      <p className="text-[10px] opacity-40 uppercase tracking-wider">Adjusting signal range</p>
                     </div>
                     <div className="text-right">
                       <span className="text-brand-accent font-mono text-3xl glow-text leading-none">{searchRadius}</span>
@@ -634,7 +634,7 @@ export default function App() {
                       className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-brand-accent relative z-10"
                     />
                     
-                    <div className="flex justify-between mt-4 text-[7px] font-mono opacity-30 uppercase tracking-[0.2em]">
+                    <div className="flex justify-between mt-4 text-[10px] font-mono opacity-40 uppercase tracking-widest">
                       <span className={searchRadius >= 1 ? "text-brand-accent opacity-100" : ""}>Local</span>
                       <span className={searchRadius >= 25 ? "text-brand-accent opacity-100" : ""}>Regional</span>
                       <span className={searchRadius >= 50 ? "text-brand-accent opacity-100" : ""}>Extended</span>
@@ -644,11 +644,11 @@ export default function App() {
                   {/* Coverage Stats */}
                   <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
                     <div className="space-y-1">
-                      <span className="text-[7px] font-bold uppercase tracking-widest opacity-30">Est. Coverage</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Est. Coverage</span>
                       <p className="text-[10px] font-mono text-white/60">{(Math.PI * Math.pow(searchRadius, 2)).toFixed(0)} km²</p>
                     </div>
                     <div className="space-y-1 text-right">
-                      <span className="text-[7px] font-bold uppercase tracking-widest opacity-30">Signal Strength</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Signal Strength</span>
                       <p className="text-[10px] font-mono text-white/60">{searchRadius > 40 ? 'Low' : searchRadius > 20 ? 'Medium' : 'High'}</p>
                     </div>
                   </div>
@@ -664,7 +664,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => startCamera('scan')}
-                  className="flex-2 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
+                  className="flex-1 py-4 bg-brand-accent text-brand-bg rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
                 >
                   Initialize Scan
                 </button>
@@ -740,7 +740,7 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tighter uppercase leading-none glow-text">WBID?</h1>
-                <p className="text-[8px] uppercase tracking-widest opacity-40 font-bold">Welche Burg ist das?</p>
+                <p className="text-[10px] uppercase tracking-widest opacity-40 font-bold">Welche Burg ist das?</p>
               </div>
             </div>
             
@@ -756,7 +756,7 @@ export default function App() {
                   >
                     <div className="text-right hidden sm:block">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-brand-accent">Explorer</p>
-                      <p className="text-[8px] opacity-50 truncate max-w-[100px]">{user.displayName || user.email}</p>
+                      <p className="text-[10px] opacity-50 truncate max-w-[100px]">{user.displayName || user.email}</p>
                     </div>
                     <button 
                       onClick={logout}
@@ -795,48 +795,53 @@ export default function App() {
         ) : (
           <div className="flex flex-col gap-12 items-center">
             <section className="w-full max-w-2xl space-y-8">
-              <div className="space-y-6 text-center">
+              <div className="space-y-5 text-center">
                 <h2 className="serif text-4xl md:text-5xl leading-tight glow-text">
-                  Uncover <span className="italic text-brand-accent">Secrets.</span>
+                  Uncover <span className="italic text-brand-accent">History.</span>
                 </h2>
+                <p className="text-sm text-brand-text/40 font-light max-w-xs mx-auto">
+                  Scan your surroundings to reveal the stories hidden in ancient landmarks.
+                </p>
                 <div className="flex justify-center">
                   <div className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border",
                     locationStatus === 'success' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                   )}>
                     <MapPin className="w-3 h-3" />
-                    {locationStatus === 'success' ? 'GPS Locked' : 'Locating...'}
+                    {locationStatus === 'success' ? 'GPS Locked' : locationStatus === 'requesting' ? 'Locating...' : 'Enable Location'}
                   </div>
                 </div>
               </div>
 
               <div className="relative">
                 {!image ? (
-                  <div className="flex flex-col gap-4">
-                    <button 
-                      onClick={() => setShowScanConfig(true)} 
-                      className="w-full py-16 glass text-brand-accent rounded-[40px] flex flex-col items-center justify-center gap-6 hover:scale-[1.02] transition-transform shadow-[0_0_30px_rgba(212,175,55,0.1)] group"
+                  <div className="flex flex-col gap-3">
+                    {/* Primary: AR Scan */}
+                    <button
+                      onClick={() => setShowScanConfig(true)}
+                      className="w-full py-12 glass text-brand-accent rounded-[32px] flex items-center justify-center gap-6 hover:scale-[1.02] transition-transform shadow-[0_0_30px_rgba(212,175,55,0.08)] group border border-brand-accent/10 hover:border-brand-accent/30"
                     >
-                      <div className="relative">
-                        <Scan className="w-16 h-16 group-hover:scale-110 transition-transform duration-500" />
-                        <motion.div 
-                          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
+                      <div className="relative shrink-0">
+                        <Scan className="w-10 h-10 group-hover:scale-110 transition-transform duration-500" />
+                        <motion.div
+                          animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.4, 0.15] }}
                           transition={{ repeat: Infinity, duration: 3 }}
-                          className="absolute inset-0 bg-brand-accent/20 blur-xl rounded-full"
+                          className="absolute inset-0 bg-brand-accent/30 blur-xl rounded-full"
                         />
                       </div>
-                      <div className="text-center space-y-2">
-                        <span className="text-xl font-bold uppercase tracking-[0.4em] glow-text">Scan AR</span>
-                        <p className="text-[10px] opacity-50 uppercase tracking-[0.2em] font-mono">Engage Binocular Mode</p>
+                      <div className="text-left space-y-1">
+                        <span className="block text-lg font-bold uppercase tracking-[0.3em] glow-text">Scan AR</span>
+                        <p className="text-[10px] opacity-50 uppercase tracking-[0.2em] font-mono">Point at a landmark to discover it</p>
                       </div>
                     </button>
-                    
-                    <button 
-                      onClick={() => startCamera('capture')} 
-                      className="w-full py-6 bg-brand-accent/5 text-brand-accent border border-brand-accent/20 rounded-[32px] flex items-center justify-center gap-4 hover:bg-brand-accent/10 transition-all active:scale-95"
+
+                    {/* Secondary: Photo Identify */}
+                    <button
+                      onClick={() => startCamera('capture')}
+                      className="w-full py-5 bg-white/5 text-brand-text/70 border border-white/10 rounded-[24px] flex items-center justify-center gap-3 hover:bg-white/10 hover:text-brand-accent hover:border-brand-accent/20 transition-all active:scale-95"
                     >
-                      <Camera className="w-5 h-5" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Identify Landmark</span>
+                      <Camera className="w-5 h-5 shrink-0" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Identify from Photo</span>
                     </button>
                   </div>
                 ) : (
@@ -880,9 +885,9 @@ export default function App() {
 
             {!result && !isAnalyzing && (
               <section className="w-full max-w-2xl">
-                <div className="h-[300px] flex flex-col items-center justify-center text-center p-12 opacity-20 space-y-6 border-4 border-dashed border-white/5 rounded-[40px]">
-                  <Map className="w-16 h-16" />
-                  <p className="serif text-3xl italic">Point your lens <br />at history</p>
+                <div className="py-12 flex flex-col items-center justify-center text-center opacity-20 space-y-3">
+                  <Map className="w-10 h-10" />
+                  <p className="serif text-2xl italic">Point your lens at history</p>
                 </div>
               </section>
             )}
@@ -925,7 +930,7 @@ export default function App() {
                 <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
                 {(collectedLandmarks.length + localLandmarks.length) > 0 && (
                   <span className={cn(
-                    "px-1.5 rounded-md text-[8px]",
+                    "px-1.5 rounded-md text-[10px]",
                     showChronicle ? "bg-brand-bg/20" : "bg-white/10"
                   )}>
                     {collectedLandmarks.length + localLandmarks.length}
