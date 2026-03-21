@@ -331,11 +331,20 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt: Prevent GC Thrashing in High-Frequency Render Loops
+  // What: Pre-combine collected and local landmarks using useMemo.
+  // Why: Avoids recreating a combined array dynamically inside a callback executed multiple times per frame (e.g., during 60fps deviceorientation updates), which causes severe garbage collection thrashing.
+  // Impact: Eliminates a major source of garbage collection overhead during AR scanning mode.
+  const allCollectedLandmarks = useMemo(
+    () => [...collectedLandmarks, ...localLandmarks],
+    [collectedLandmarks, localLandmarks]
+  );
+
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allCollectedLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [allCollectedLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
