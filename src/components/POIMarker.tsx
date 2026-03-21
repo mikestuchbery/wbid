@@ -81,14 +81,14 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
             {landmark.name}
           </span>
           {landmark.distance !== undefined && (
-            <span className="text-[8px] font-mono opacity-70 mt-0.5">
+            <span className="text-[10px] font-mono opacity-70 mt-0.5">
               {landmark.distance < 1 ? `${(landmark.distance * 1000).toFixed(0)}m` : `${landmark.distance.toFixed(1)}km`}
             </span>
           )}
           {isCollected && (
             <div className="flex items-center gap-1 mt-1 text-green-400">
-              <Check className="w-2 h-2" />
-              <span className="text-[7px] font-bold uppercase tracking-widest">Discovered</span>
+              <Check className="w-2.5 h-2.5" />
+              <span className="text-[9px] font-bold uppercase tracking-widest">Discovered</span>
             </div>
           )}
         </div>
