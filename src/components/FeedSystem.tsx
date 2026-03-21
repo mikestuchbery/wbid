@@ -75,9 +75,14 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                   
                   <div className="absolute top-6 right-6 flex gap-2">
                     <button 
-                      onClick={() => onDelete(lm.id)}
-                      className="p-3 bg-black/40 backdrop-blur-md rounded-full text-red-400 hover:bg-red-500 hover:text-white transition-all active:scale-90 border border-white/10"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this historical discovery? This action cannot be undone.')) {
+                          onDelete(lm.id);
+                        }
+                      }}
+                      className="p-3 bg-black/40 backdrop-blur-md rounded-full text-red-400 hover:bg-red-500 hover:text-white transition-all active:scale-90 border border-white/10 focus-visible:ring-2 focus-visible:outline-none"
                       title="Delete Entry"
+                      aria-label="Delete Entry"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
