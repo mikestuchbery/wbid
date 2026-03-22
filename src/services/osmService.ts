@@ -1,5 +1,19 @@
 import { NearbyLandmark } from '../types';
 
+interface OSMElement {
+  lat?: number;
+  lon?: number;
+  tags?: {
+    name?: string;
+    historic?: string;
+    [key: string]: string | undefined;
+  };
+  center?: {
+    lat: number;
+    lon: number;
+  };
+}
+
 export const fetchNearbyLandmarks = async (
   lat: number, 
   lng: number, 
@@ -25,11 +39,11 @@ export const fetchNearbyLandmarks = async (
   
   const data = await response.json();
   
-  const landmarks: NearbyLandmark[] = data.elements.map((el: any) => ({
-    name: el.tags.name || el.tags.historic || "Historical Site",
+  const landmarks: NearbyLandmark[] = data.elements.map((el: OSMElement) => ({
+    name: el.tags?.name || el.tags?.historic || "Historical Site",
     lat: el.lat || el.center?.lat,
     lng: el.lon || el.center?.lon
-  })).filter((l: any) => l.lat && l.lng && l.name !== "Historical Site");
+  })).filter((l: Partial<NearbyLandmark>) => l.lat !== undefined && l.lng !== undefined && l.name !== "Historical Site") as NearbyLandmark[];
 
   return landmarks.map(lm => {
     const R = 6371; // Earth radius in km
