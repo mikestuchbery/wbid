@@ -1,0 +1,3 @@
+## 2024-05-18 - [Inline Math Blockage in Location-based UI]
+**Learning:** Frequent deviceorientation and geolocation updates cause continuous React re-renders. Performing relatively complex trigonometric math (like the Haversine formula) and sorting lists inline during these renders severely blocks the main thread, leading to jittery UI and garbage collection thrashing in high-frequency update apps.
+**Action:** Always memoize expensive math and sorting based on critical dependencies (like list updates or significant coordinate changes) rather than computing them on every single frame/render cycle.
