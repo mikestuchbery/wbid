@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { History, MapPin, Navigation, Trash2, Calendar } from 'lucide-react';
 import { CollectedLandmark } from '../types';
@@ -24,11 +24,45 @@ interface FeedSystemProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
-export const FeedSystem: React.FC<FeedSystemProps> = ({ 
+// ⚡ Bolt Optimization
+// What: Wrap FeedSystem with React.memo
+// Why: Prevent re-rendering large list when parent App component updates frequently (e.g. device orientation)
+// Impact: Major CPU cycle savings by skipping O(N) diffing when props haven't changed
+export const FeedSystem = React.memo(({
   landmarks, 
   onDelete,
   userLocation
-}) => {
+}: FeedSystemProps) => {
+  // ⚡ Bolt Optimization
+  // What: Extracted Haversine math and array sorting into useMemo
+  // Why: These operations were running inline on every render cycle, even for unrelated state updates
+  // Impact: Reduces O(N) complex math operations to run only when data actually changes
+  const sortedLandmarksWithDistance = useMemo(() => {
+    const sorted = [...landmarks].sort((a, b) => {
+      const timeA = a.collectedAt?.seconds || 0;
+      const timeB = b.collectedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    return sorted.map(lm => {
+      let formattedDistance: string | undefined;
+
+      if (userLocation) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lm.lat - userLocation.lat) * Math.PI / 180;
+        const dLon = (lm.lng - userLocation.lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(lm.lat * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const dist = R * c;
+        formattedDistance = dist < 1 ? `${(dist * 1000).toFixed(0)}m` : `${dist.toFixed(1)}km`;
+      }
+
+      return { ...lm, formattedDistance };
+    });
+  }, [landmarks, userLocation]);
+
   return (
     <div className="space-y-8 pb-32">
       <header className="space-y-2">
@@ -48,11 +82,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
               <p className="serif italic opacity-40 text-xl">No discoveries recorded yet...</p>
             </motion.div>
           ) : (
-            [...landmarks].sort((a, b) => {
-              const timeA = a.collectedAt?.seconds || 0;
-              const timeB = b.collectedAt?.seconds || 0;
-              return timeB - timeA;
-            }).map((lm) => (
+            sortedLandmarksWithDistance.map((lm) => (
               <motion.div
                 key={lm.id}
                 layout
@@ -117,20 +147,10 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                         <MapPin className="w-3.5 h-3.5 text-brand-accent" />
                         {lm.lat.toFixed(4)}, {lm.lng.toFixed(4)}
                       </div>
-                      {userLocation && (
+                      {lm.formattedDistance && (
                         <div className="flex items-center gap-1.5 text-brand-accent/60">
                           <Navigation className="w-3.5 h-3.5" />
-                          {(() => {
-                            const R = 6371;
-                            const dLat = (lm.lat - userLocation.lat) * Math.PI / 180;
-                            const dLon = (lm.lng - userLocation.lng) * Math.PI / 180;
-                            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                                      Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(lm.lat * Math.PI / 180) * 
-                                      Math.sin(dLon/2) * Math.sin(dLon/2);
-                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                            const dist = R * c;
-                            return dist < 1 ? `${(dist * 1000).toFixed(0)}m` : `${dist.toFixed(1)}km`;
-                          })()}
+                          {lm.formattedDistance}
                         </div>
                       )}
                     </div>
@@ -166,4 +186,4 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
       </div>
     </div>
   );
-};
+});
