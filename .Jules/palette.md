@@ -1,0 +1,3 @@
+## 2024-05-18 - Guarding Destructive Actions for Hard-Earned Data
+**Learning:** In applications where user data represents significant physical effort (like discovering real-world locations through GPS/AR), accidental deletions cause severe user frustration because the data cannot be easily regenerated. Standard "trash" icons are too easy to accidentally tap on mobile devices.
+**Action:** Always guard destructive actions (especially deletions of physically-collected data) with explicit confirmation dialogs (e.g., `window.confirm`) and ensure the buttons are fully accessible with descriptive `aria-label` attributes and keyboard focus styles to prevent unintended interactions.
