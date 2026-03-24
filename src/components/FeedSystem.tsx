@@ -24,11 +24,19 @@ interface FeedSystemProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
-export const FeedSystem: React.FC<FeedSystemProps> = ({ 
+export const FeedSystem = React.memo(({
   landmarks, 
   onDelete,
   userLocation
-}) => {
+}: FeedSystemProps) => {
+  const sortedLandmarks = React.useMemo(() => {
+    return [...landmarks].sort((a, b) => {
+      const timeA = a.collectedAt?.seconds || 0;
+      const timeB = b.collectedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [landmarks]);
+
   return (
     <div className="space-y-8 pb-32">
       <header className="space-y-2">
@@ -38,7 +46,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
 
       <div className="grid gap-6">
         <AnimatePresence mode="popLayout">
-          {landmarks.length === 0 ? (
+          {sortedLandmarks.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -48,11 +56,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
               <p className="serif italic opacity-40 text-xl">No discoveries recorded yet...</p>
             </motion.div>
           ) : (
-            [...landmarks].sort((a, b) => {
-              const timeA = a.collectedAt?.seconds || 0;
-              const timeB = b.collectedAt?.seconds || 0;
-              return timeB - timeA;
-            }).map((lm) => (
+            sortedLandmarks.map((lm) => (
               <motion.div
                 key={lm.id}
                 layout
@@ -166,4 +170,4 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
       </div>
     </div>
   );
-};
+});
