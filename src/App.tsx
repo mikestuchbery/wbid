@@ -189,23 +189,27 @@ export default function App() {
     }
   }, []);
 
-  const saveToLocal = (landmark: any) => {
+  const saveToLocal = useCallback((landmark: any) => {
     const newLandmark: CollectedLandmark = {
       ...landmark,
       id: `local_${Date.now()}`,
       uid: 'public',
       collectedAt: { seconds: Math.floor(Date.now() / 1000) }
     };
-    const updated = [newLandmark, ...localLandmarks];
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+    setLocalLandmarks(prev => {
+      const updated = [newLandmark, ...prev];
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
-  const deleteLocal = (id: string) => {
-    const updated = localLandmarks.filter(l => l.id !== id);
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+  const deleteLocal = useCallback((id: string) => {
+    setLocalLandmarks(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const login = async () => {
     try {
@@ -230,7 +234,7 @@ export default function App() {
     }
   };
 
-  const collectLandmark = async () => {
+  const collectLandmark = useCallback(async () => {
     if (!result || !result.coordinates) return;
     setIsSaving(true);
     const path = 'saved_landmarks';
@@ -268,9 +272,9 @@ export default function App() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [result, user]);
 
-  const collectNearbyLandmark = async (lm: NearbyLandmark) => {
+  const collectNearbyLandmark = useCallback(async (lm: NearbyLandmark) => {
     setIsSaving(true);
     try {
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
@@ -320,14 +324,18 @@ export default function App() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [user, selectedCategories]);
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  const allLandmarks = React.useMemo(() => {
+    return [...collectedLandmarks, ...localLandmarks];
+  }, [collectedLandmarks, localLandmarks]);
+
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
-  const deleteCollected = async (id: string) => {
+  }, [allLandmarks]);
+  const deleteCollected = useCallback(async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
@@ -335,7 +343,15 @@ export default function App() {
       handleFirestoreError(err, OperationType.DELETE, path);
       console.error("Delete failed:", err);
     }
-  };
+  }, []);
+
+  const handleDeleteLandmark = useCallback((id: string) => {
+    if (id.startsWith('local_')) {
+      deleteLocal(id);
+    } else {
+      deleteCollected(id);
+    }
+  }, [deleteLocal, deleteCollected]);
 
   // --- Device Logic ---
   const getGPSLocation = useCallback(() => {
@@ -386,7 +402,7 @@ export default function App() {
     }
   };
 
-  const fetchNearby = async () => {
+  const fetchNearby = useCallback(async () => {
     if (!location) return;
     setIsFetchingNearby(true);
     try {
@@ -403,10 +419,10 @@ export default function App() {
     } finally { 
       setIsFetchingNearby(false); 
     }
-  };
+  }, [location, searchRadius, selectedCategories]);
 
   // --- Camera Logic ---
-  const startCamera = async (mode: 'capture' | 'scan') => {
+  const startCamera = useCallback(async (mode: 'capture' | 'scan') => {
     if (mode === 'scan') {
       if (!showScanConfig && nearbyLandmarks.length === 0) {
         setShowScanConfig(true);
@@ -425,7 +441,7 @@ export default function App() {
     setImage(null);
     setResult(null);
     setShowScanConfig(false);
-  };
+  }, [showScanConfig, nearbyLandmarks.length, selectedCategories.length, fetchNearby]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -447,15 +463,15 @@ export default function App() {
     return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
   }, [isCameraActive]);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     setIsCameraActive(false);
     setIsScanMode(false);
     if (discovery) {
       setShowChronicle(true);
     }
-  };
+  }, [discovery]);
 
-  const capturePhoto = () => {
+  const capturePhoto = useCallback(() => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       canvas.width = videoRef.current.videoWidth;
@@ -464,7 +480,7 @@ export default function App() {
       setImage(canvas.toDataURL('image/jpeg'));
       stopCamera();
     }
-  };
+  }, [stopCamera]);
 
   // --- AI Logic ---
   const analyzeImage = async () => {
@@ -788,8 +804,8 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
-            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
+            landmarks={allLandmarks}
+            onDelete={handleDeleteLandmark}
             userLocation={location}
           />
         ) : (

@@ -13,14 +13,14 @@ interface POIMarkerProps {
   verticalOffset?: number;
 }
 
-export const POIMarker: React.FC<POIMarkerProps> = ({ 
+export const POIMarker = React.memo(({
   landmark, 
   heading, 
   isSaving, 
   isCollected,
   onCollect,
   verticalOffset = 0
-}) => {
+}: POIMarkerProps) => {
   if (landmark.bearing === undefined) return null;
   
   let diff = landmark.bearing - heading;
@@ -104,4 +104,4 @@ export const POIMarker: React.FC<POIMarkerProps> = ({
       />
     </motion.div>
   );
-};
+});
