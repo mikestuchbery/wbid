@@ -1,0 +1,4 @@
+## 2024-05-18 - Prevent Accidental Data Loss and Enhance Keyboard Accessibility
+
+**Learning:** When dealing with user-collected data, especially physical location data which takes effort to obtain, it's critical to add confirmation steps to destructive actions like deletions to prevent accidental loss. Additionally, several interactive elements (like icon-only buttons and range sliders) lack proper ARIA labels and focus indicators, which hinders keyboard and screen reader accessibility.
+**Action:** Always wrap delete operations in a `window.confirm` dialog or similar prompt. Consistently apply `aria-label` to icon-only buttons and custom inputs (like the search radius slider), and use Tailwind's `focus-visible` utilities (`focus-visible:ring-2`, `focus-visible:outline-none`) to ensure clear visual focus states for keyboard navigation.
