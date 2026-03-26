@@ -1,0 +1,3 @@
+## 2025-03-16 - [Frontend Performance: Redundant array spreads in render loop]
+**Learning:** Using array spread syntax `[...array1, ...array2]` inside a component render function creates a new array reference every time. When this is done inside a helper function that is passed to child components or called multiple times per render (like `isLandmarkCollected` checking 20 POI markers at 60fps), it leads to significant redundant work and memory allocation, blocking the main thread.
+**Action:** Use `useMemo` to memoize combined arrays and `useCallback` for functions that use them, especially when passed to children or executed multiple times per frame.
