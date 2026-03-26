@@ -1,0 +1,3 @@
+## 2024-05-28 - [Preventing GC Thrashing in High-Frequency Render Loops]
+**Learning:** Inline array spread operators (`[...a, ...b]`) inside callbacks that are executed multiple times per frame (e.g., inside an array `.map()` in a component receiving 60fps `deviceorientation` updates) create severe garbage collection thrashing. In this codebase, `isLandmarkCollected` was recreating a combined landmarks array multiple times per frame.
+**Action:** Always pre-combine arrays using `useMemo` at the component level, rather than combining them dynamically inside high-frequency callback functions or loops.
