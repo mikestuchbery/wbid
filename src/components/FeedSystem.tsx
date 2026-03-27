@@ -84,9 +84,14 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                   {/* Delete button */}
                   <div className="absolute top-4 right-4">
                     <button
-                      onClick={() => onDelete(lm.id)}
-                      className="p-2.5 bg-black/50 backdrop-blur-md rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/20 transition-all active:scale-90 border border-white/10"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this discovery?')) {
+                          onDelete(lm.id);
+                        }
+                      }}
+                      className="p-2.5 bg-black/50 backdrop-blur-md rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/20 transition-all active:scale-90 border border-white/10 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-white"
                       title="Delete Entry"
+                      aria-label="Delete Entry"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -152,7 +157,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                       href={`https://www.google.com/maps/dir/?api=1&destination=${lm.lat},${lm.lng}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-brand-accent hover:underline text-xs font-bold uppercase tracking-widest group/nav"
+                      className="inline-flex items-center gap-2 text-brand-accent hover:underline text-xs font-bold uppercase tracking-widest group/nav focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-brand-accent rounded"
                     >
                       Navigate to Site
                       <Navigation className="w-4 h-4 group-hover/nav:translate-x-1 group-hover/nav:-translate-y-1 transition-transform" />
