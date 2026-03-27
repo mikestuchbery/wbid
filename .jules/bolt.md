@@ -1,0 +1,3 @@
+## 2024-05-24 - High-Frequency Device Orientation Main Thread Blocking
+**Learning:** In applications utilizing the `deviceorientation` API for AR/compass features (triggering up to 60fps), any inline object/array allocation or O(N log N) sorting operations within the render path of components dependent on this state will cause severe garbage collection thrashing and main thread blocking.
+**Action:** Always strictly memoize derived data arrays (e.g., combining local and cloud landmarks), wrap heavy child components (like `FeedSystem`) in `React.memo()`, and memoize callbacks (`useCallback`) and derived properties (`useMemo`, like sorting lists or calculating Haversine distances) to prevent cascading re-renders across the component tree.

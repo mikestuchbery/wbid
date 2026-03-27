@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Camera, MapPin, History, Info, Loader2, X, Compass, 
@@ -136,6 +136,14 @@ export default function App() {
 
   // Device State
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // ⚡ Bolt Optimization: Memoize combined landmarks array to prevent inline
+  // allocation on every render, especially critical during 60fps deviceorientation updates.
+  // Impact: Eliminates O(N) array allocation overhead per frame.
+  const allLandmarks = useMemo(() =>
+    [...collectedLandmarks, ...localLandmarks],
+    [collectedLandmarks, localLandmarks]
+  );
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
   const [nearbyLandmarks, setNearbyLandmarks] = useState<NearbyLandmark[]>([]);
   const [heading, setHeading] = useState<number | null>(null);
@@ -189,23 +197,29 @@ export default function App() {
     }
   }, []);
 
-  const saveToLocal = (landmark: any) => {
+  const saveToLocal = useCallback((landmark: any) => {
     const newLandmark: CollectedLandmark = {
       ...landmark,
       id: `local_${Date.now()}`,
       uid: 'public',
       collectedAt: { seconds: Math.floor(Date.now() / 1000) }
     };
-    const updated = [newLandmark, ...localLandmarks];
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+    setLocalLandmarks(prev => {
+      const updated = [newLandmark, ...prev];
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
-  const deleteLocal = (id: string) => {
-    const updated = localLandmarks.filter(l => l.id !== id);
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+  // ⚡ Bolt Optimization: Memoize delete function and use functional state updates
+  // to avoid adding localLandmarks to dependency array, preventing callback recreation.
+  const deleteLocal = useCallback((id: string) => {
+    setLocalLandmarks(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const login = async () => {
     try {
@@ -322,12 +336,14 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt Optimization: Memoize lookup function to prevent recreation per frame.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
-  const deleteCollected = async (id: string) => {
+  }, [allLandmarks]);
+
+  const deleteCollected = useCallback(async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
@@ -335,7 +351,16 @@ export default function App() {
       handleFirestoreError(err, OperationType.DELETE, path);
       console.error("Delete failed:", err);
     }
-  };
+  }, []);
+
+  // ⚡ Bolt Optimization: Memoize the unified delete handler passed to FeedSystem
+  const handleDeleteLandmark = useCallback((id: string) => {
+    if (id.startsWith('local_')) {
+      deleteLocal(id);
+    } else {
+      deleteCollected(id);
+    }
+  }, [deleteLocal, deleteCollected]);
 
   // --- Device Logic ---
   const getGPSLocation = useCallback(() => {
@@ -788,8 +813,8 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
-            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
+            landmarks={allLandmarks}
+            onDelete={handleDeleteLandmark}
             userLocation={location}
           />
         ) : (
@@ -872,7 +897,7 @@ export default function App() {
               )}
 
               <AnimatePresence mode="wait">
-                {result && (
+                {result && result.coordinates && (
                   <ResultCard 
                     result={result} 
                     onCollect={collectLandmark} 
@@ -928,12 +953,12 @@ export default function App() {
               >
                 <History className="w-5 h-5" aria-hidden="true" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
-                {(collectedLandmarks.length + localLandmarks.length) > 0 && (
+                {allLandmarks.length > 0 && (
                   <span className={cn(
                     "px-1.5 rounded-md text-[10px]",
                     showChronicle ? "bg-brand-bg/20" : "bg-white/10"
                   )}>
-                    {collectedLandmarks.length + localLandmarks.length}
+                    {allLandmarks.length}
                   </span>
                 )}
               </button>
