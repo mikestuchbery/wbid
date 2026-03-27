@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { History, MapPin, Navigation, Trash2, Calendar } from 'lucide-react';
 import { CollectedLandmark } from '../types';
@@ -24,11 +24,26 @@ interface FeedSystemProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
-export const FeedSystem: React.FC<FeedSystemProps> = ({ 
+// ⚡ Bolt Optimization: Wrap component in React.memo to prevent re-rendering when
+// parent state (like device orientation) changes frequently.
+// Impact: Prevents heavy DOM reconciliation of the entire feed on every compass update.
+export const FeedSystem = React.memo(({
   landmarks, 
   onDelete,
   userLocation
-}) => {
+}: FeedSystemProps) => {
+  // ⚡ Bolt Optimization: Memoize the sorted list to prevent O(N log N)
+  // recalculation and inline array allocation on every render. Must be
+  // declared at the top level to obey the Rules of Hooks.
+  // Impact: Stabilizes CPU usage during frequent re-renders.
+  const sortedLandmarks = useMemo(() => {
+    return [...landmarks].sort((a, b) => {
+      const timeA = a.collectedAt?.seconds || 0;
+      const timeB = b.collectedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [landmarks]);
+
   return (
     <div className="space-y-8 pb-32">
       <header className="space-y-2">
@@ -38,7 +53,7 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
 
       <div className="grid gap-6">
         <AnimatePresence mode="popLayout">
-          {landmarks.length === 0 ? (
+          {sortedLandmarks.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -48,13 +63,9 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
               <p className="serif italic opacity-40 text-xl">No discoveries recorded yet...</p>
             </motion.div>
           ) : (
-            [...landmarks].sort((a, b) => {
-              const timeA = a.collectedAt?.seconds || 0;
-              const timeB = b.collectedAt?.seconds || 0;
-              return timeB - timeA;
-            }).map((lm) => (
+            sortedLandmarks.map((lm) => (
               <motion.div
-                key={lm.id}
+                  key={lm.id}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -166,4 +177,4 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
       </div>
     </div>
   );
-};
+});
