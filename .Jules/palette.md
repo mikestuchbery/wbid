@@ -1,0 +1,3 @@
+## 2024-05-14 - Prevent Accidental Data Loss
+**Learning:** In a map-based discovery app where users physically collect location data, deleting an entry has unusually high stakes because the data is hard-earned and cannot be easily recreated.
+**Action:** Always guard destructive actions (like deletions) with a confirmation prompt (e.g., `window.confirm`) to prevent accidental loss of this valuable user-collected physical location data.
