@@ -1,0 +1,3 @@
+## 2024-05-24 - Device Orientation Render Thrashing
+**Learning:** The frontend heavily utilizes the `deviceorientation` API, which can trigger updates up to 60fps in `App.tsx`. Passing unmemoized arrays (`[...local, ...collected]`) or inline callbacks to heavy child components like `FeedSystem` breaks `React.memo` and causes massive GC thrashing and O(N log N) recalculations on the main thread.
+**Action:** Always strictly memoize derived state (arrays, mapped objects) and callbacks (`useMemo`, `useCallback` with functional state updates) when passing props down from high-frequency update parents in this architecture.
