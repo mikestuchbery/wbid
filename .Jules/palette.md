@@ -1,0 +1,3 @@
+## 2025-03-29 - Destructive Actions and Icon Buttons
+**Learning:** Hard-earned, user-collected data requires explicit confirmation before deletion to prevent accidental data loss. Icon-only buttons without `aria-label` and `focus-visible` styles lead to poor accessibility and keyboard navigation.
+**Action:** Always guard destructive actions (like deleting a landmark entry) with `window.confirm`. Ensure all icon-only buttons (like delete, close, or dismiss buttons) have descriptive `aria-label` attributes and standard focus-visible utility classes (e.g., `focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-white`).
