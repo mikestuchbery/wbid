@@ -631,7 +631,8 @@ export default function App() {
                       step="1"
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(parseInt(e.target.value))}
-                      className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-brand-accent relative z-10"
+                      aria-label="Search Radius"
+                      className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-brand-accent relative z-10 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
                     />
                     
                     <div className="flex justify-between mt-4 text-[10px] font-mono opacity-40 uppercase tracking-widest">
