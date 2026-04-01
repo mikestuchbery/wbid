@@ -1,0 +1,3 @@
+## 2024-04-01 - Avoid Array Spread Object Allocation in High-Frequency Renders
+**Learning:** During AR operations, the `deviceorientation` event fires up to 60 times a second. Functions called within this context (like `isLandmarkCollected` used by `CameraView`) shouldn't perform object allocations like spreading arrays `[...collectedLandmarks, ...localLandmarks]`. Doing so allocates thousands of arrays per second, causing heavy GC (Garbage Collection) thrashing and tanking the frame rate.
+**Action:** Use `.some()` or `.find()` sequentially on independent arrays instead of combining them with spreads. Additionally, wrap complex calculations or mapping logic with `useMemo` hooks (as seen in `FeedSystem`) and handlers with `useCallback` to maintain referential stability.
