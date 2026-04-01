@@ -1,0 +1,3 @@
+## 2025-04-01 - Added Confirmation Dialog and ARIA Label to Delete Button
+**Learning:** Destructive actions like deleting a collected landmark in the FeedSystem require a confirmation dialog to prevent accidental data loss. Furthermore, icon-only buttons like the trash can must have an `aria-label` attribute so that screen readers can announce their purpose, and the SVG inside should have `aria-hidden="true"`.
+**Action:** When adding or reviewing features with delete functionality, ensure `window.confirm` (or a similar prompt) is used and that any icon-only interactive elements include descriptive `aria-label` attributes.
