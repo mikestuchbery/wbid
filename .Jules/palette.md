@@ -1,0 +1,3 @@
+## 2024-05-24 - Guarding Destructive Actions and Accessibility Basics
+**Learning:** Destructive actions like deleting a discovered landmark without warning can lead to accidental loss of hard-earned data. Interactive elements like icon-only buttons and sliders also require clear `aria-label`s and visible focus states for keyboard accessibility and a complete, inclusive user experience.
+**Action:** Always wrap destructive UI operations with a confirmation prompt (e.g., `window.confirm`) and ensure all interactive controls have semantic labels and `focus-visible` utility classes applied.
