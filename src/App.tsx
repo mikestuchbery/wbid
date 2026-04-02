@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Camera, MapPin, History, Info, Loader2, X, Compass, 
@@ -201,11 +201,13 @@ export default function App() {
     localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
   };
 
-  const deleteLocal = (id: string) => {
-    const updated = localLandmarks.filter(l => l.id !== id);
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+  const deleteLocal = useCallback((id: string) => {
+    setLocalLandmarks(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const login = async () => {
     try {
@@ -327,7 +329,7 @@ export default function App() {
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
   };
-  const deleteCollected = async (id: string) => {
+  const deleteCollected = useCallback(async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
@@ -335,7 +337,17 @@ export default function App() {
       handleFirestoreError(err, OperationType.DELETE, path);
       console.error("Delete failed:", err);
     }
-  };
+  }, []);
+
+  const allLandmarks = useMemo(() => [...collectedLandmarks, ...localLandmarks], [collectedLandmarks, localLandmarks]);
+
+  const handleDelete = useCallback((id: string) => {
+    if (id.startsWith('local_')) {
+      deleteLocal(id);
+    } else {
+      deleteCollected(id);
+    }
+  }, [deleteLocal, deleteCollected]);
 
   // --- Device Logic ---
   const getGPSLocation = useCallback(() => {
@@ -788,8 +800,8 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
-            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
+            landmarks={allLandmarks}
+            onDelete={handleDelete}
             userLocation={location}
           />
         ) : (
