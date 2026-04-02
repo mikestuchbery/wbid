@@ -1,0 +1,4 @@
+
+## 2024-04-02 - Memoization Pitfalls with High-Frequency State
+**Learning:** In a React application with high-frequency state updates (like `deviceorientation` driving up to 60fps renders in `App.tsx`), `React.memo` on pure child components is easily broken by passing inline array literals or arrow functions as props (e.g. `landmarks={[...a, ...b]}` or `onDelete={() => ...}`). Additionally, deriving O(N log N) state like sorting lists combined with Haversine computations within the child's render function blocks the main thread.
+**Action:** Always memoize derived state arrays (`useMemo`) and callback handlers (`useCallback`) at the parent level before passing them as props to components consuming them. Within the child component, extract heavy computations into `useMemo` specifically around the data items to avoid repeated processing on every parent render cycle.

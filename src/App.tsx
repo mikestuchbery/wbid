@@ -337,6 +337,19 @@ export default function App() {
     }
   };
 
+  const combinedLandmarks = React.useMemo(
+    () => [...collectedLandmarks, ...localLandmarks],
+    [collectedLandmarks, localLandmarks]
+  );
+
+  const handleDeleteChronicle = useCallback((id: string) => {
+    if (id.startsWith('local_')) {
+      deleteLocal(id);
+    } else {
+      deleteCollected(id);
+    }
+  }, [localLandmarks, collectedLandmarks]);
+
   // --- Device Logic ---
   const getGPSLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -788,8 +801,8 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
-            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
+            landmarks={combinedLandmarks}
+            onDelete={handleDeleteChronicle}
             userLocation={location}
           />
         ) : (
