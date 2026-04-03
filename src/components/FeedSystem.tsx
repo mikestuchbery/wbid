@@ -82,11 +82,16 @@ export const FeedSystem: React.FC<FeedSystemProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-brand-bg/90 via-brand-bg/10 to-transparent" />
 
                   {/* Delete button */}
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 z-10">
                     <button
-                      onClick={() => onDelete(lm.id)}
-                      className="p-2.5 bg-black/50 backdrop-blur-md rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/20 transition-all active:scale-90 border border-white/10"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this discovery? This action cannot be undone.')) {
+                          onDelete(lm.id);
+                        }
+                      }}
+                      className="p-2.5 bg-black/50 backdrop-blur-md rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/20 transition-all active:scale-90 border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       title="Delete Entry"
+                      aria-label="Delete Entry"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
