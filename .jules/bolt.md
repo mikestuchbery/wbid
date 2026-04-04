@@ -1,0 +1,3 @@
+## 2024-05-14 - Preventing O(N log N) recalculations during high-frequency renders
+**Learning:** High-frequency events like `deviceorientation` cause parents (like App.tsx) to re-render up to 60fps. Inline arrays, inline callbacks, and expensive sorting/math (like Haversine) in child components will thrash garbage collection and block the main thread if not carefully memoized.
+**Action:** Always extract inline array creation to `useMemo` and inline functions to `useCallback` when passed as props from a frequently-updating parent. Use functional state updates within those callbacks to prevent dependency-based invalidation.
