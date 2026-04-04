@@ -760,7 +760,7 @@ export default function App() {
                     </div>
                     <button 
                       onClick={logout}
-                      className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+                      className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-white"
                       aria-label="Logout"
                     >
                       <LogOut className="w-4 h-4" />
