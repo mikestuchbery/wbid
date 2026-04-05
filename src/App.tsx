@@ -632,6 +632,7 @@ export default function App() {
                       value={searchRadius}
                       onChange={(e) => setSearchRadius(parseInt(e.target.value))}
                       className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-brand-accent relative z-10"
+                      aria-label="Search Radius"
                     />
                     
                     <div className="flex justify-between mt-4 text-[10px] font-mono opacity-40 uppercase tracking-widest">
@@ -717,7 +718,7 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
+              <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors" aria-label="Close error message">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -848,7 +849,7 @@ export default function App() {
                   <div className="relative aspect-[4/3] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white/10">
                     <img src={image} alt="Preview" className="w-full h-full object-cover" />
                     {isAnalyzing && <div className="scanning-line" />}
-                    <button onClick={() => setImage(null)} className="absolute top-6 right-6 p-3 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors z-30"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setImage(null)} className="absolute top-6 right-6 p-3 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors z-30" aria-label="Close preview"><X className="w-5 h-5" /></button>
                     {!result && !isAnalyzing && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                         <button 
