@@ -323,9 +323,12 @@ export default function App() {
   };
 
   const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
+    // ⚡ Bolt: Removed array spread [...a, ...b] to eliminate O(N+M) array allocations on every render cycle.
+    // Impact: Reduces garbage collection thrashing during high-frequency deviceorientation updates.
+    const checkFn = (l: CollectedLandmark) =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+
+    return collectedLandmarks.some(checkFn) || localLandmarks.some(checkFn);
   };
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
