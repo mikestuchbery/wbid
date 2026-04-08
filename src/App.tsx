@@ -322,11 +322,14 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ Bolt: Optimize isLandmarkCollected to prevent GC thrashing
+  // What: Wrap in useCallback and avoid array spreading
+  // Why: High-frequency renders (up to 60fps from deviceorientation) caused frequent O(N+M) memory allocations.
+  // Impact: Reduces main thread blocking and memory allocations during AR camera view
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const isMatch = (l: CollectedLandmark) => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(isMatch) || localLandmarks.some(isMatch);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {

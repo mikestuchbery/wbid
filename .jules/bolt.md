@@ -1,0 +1,3 @@
+## 2025-03-09 - High-Frequency GC Thrashing from Array Spreads
+**Learning:** During AR sessions, `deviceorientation` events fire up to 60fps, triggering high-frequency state updates and re-renders. Using inline array spreads (e.g., `[...arr1, ...arr2]`) within functions like `isLandmarkCollected` called during render creates a new array object on every single frame, causing significant memory allocation overhead and Garbage Collection (GC) thrashing.
+**Action:** Always avoid creating new object/array references within frequently executed code paths or render loops. Specifically, replace array combinations with sequential iterations (like sequential `.some()` checks) and wrap stable functions in `useCallback` to maintain referential equality.
