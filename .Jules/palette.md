@@ -1,0 +1,3 @@
+## 2025-04-08 - [Guarding Destructive Actions]
+**Learning:** Guard destructive actions (e.g., deletions) with a confirmation prompt like `window.confirm` to prevent accidental data loss, which is especially critical in this app to prevent loss of hard-earned, user-collected physical location data. Also, icon-only buttons need descriptive `aria-label` attributes for accessibility.
+**Action:** When implementing or modifying destructive actions in the app's components, always ensure they are guarded with a confirmation dialogue, and verify that all interactive UI elements like icon-only buttons have appropriate `aria-label`s.
