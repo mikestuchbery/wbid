@@ -322,11 +322,15 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ Bolt Performance Optimization:
+  // What: Wrapped in useCallback and replaced [...arr1, ...arr2] spread with separate .some() checks
+  // Why: Function is called multiple times per render (up to 60fps during deviceorientation). Eliminates O(N+M) array allocation per call, preventing GC thrashing.
+  // Impact: Reduces main thread blocking and eliminates micro-stutters in AR view.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const isMatch = (l: { name: string, lat: number, lng: number }) =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(isMatch) || localLandmarks.some(isMatch);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
