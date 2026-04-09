@@ -1,0 +1,3 @@
+## 2024-05-20 - Prevent Data Loss for Collected Landmarks
+**Learning:** Hard-earned, user-collected physical location data in the Chronicle feed can be accidentally lost when destructive actions (like deletions) lack confirmation prompts.
+**Action:** Always guard destructive actions (e.g., `onDelete`) with a confirmation dialog (like `window.confirm`) to prevent accidental data loss. Also, ensure the action button is accessible with proper ARIA labels and focus styles.
