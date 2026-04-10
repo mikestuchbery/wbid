@@ -227,6 +227,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
                   ? "bg-brand-accent border-white/20 shadow-[0_0_30px_rgba(212,175,55,0.6)]"
                   : "bg-white/5 border-white/10 opacity-50"
               )}
+              aria-label="Capture target"
             >
               {isSaving ? (
                 <Loader2 className="w-8 h-8 animate-spin text-brand-bg" />
