@@ -1,0 +1,3 @@
+## 2024-05-24 - [Avoid array spreads in render-cycle callbacks]
+**Learning:** [In components with high-frequency state updates (like `deviceorientation` triggering 60fps), inline array spread allocations (e.g., `[...arr1, ...arr2]`) within callback definitions cause significant memory allocation and garbage collection thrashing. Even worse, if passed to children, it causes cascading re-renders.]
+**Action:** [Use separate array iteration methods (e.g., `arr1.some() || arr2.some()`) and wrap the callback in `useCallback` to maintain referential equality across fast re-renders, preventing memory and performance bottlenecks.]
