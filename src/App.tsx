@@ -322,11 +322,15 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // What: Replaced array spread [...A, ...B] with separate .some() checks and wrapped in useCallback.
+  // Why: Prevents O(N+M) memory allocation on every render and maintains referential equality for child components during 60fps deviceorientation updates.
+  // Impact: Eliminates garbage collection thrashing and reduces cascading re-renders in heavy components.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const isMatch = (l: { name: string, lat: number, lng: number }) =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+
+    return collectedLandmarks.some(isMatch) || localLandmarks.some(isMatch);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
