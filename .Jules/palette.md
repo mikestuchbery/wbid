@@ -1,0 +1,3 @@
+## 2026-04-13 - Added accessible attributes to core interactive UI
+**Learning:** When using Tailwind utility classes for `focus-visible`, always pair `focus-visible:ring-2` with `focus-visible:outline-none` and a specific ring color (like `focus-visible:ring-white`) to ensure the focus ring is actually visible against dark backgrounds. Also, destructive actions on collected data in this app need a `window.confirm` gate to prevent accidental data loss, as retrieving the physical location data again is difficult for users.
+**Action:** Apply this specific combination of focus-visible utility classes to all custom interactive components moving forward, and always gate destructive actions.
