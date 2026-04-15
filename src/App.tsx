@@ -322,11 +322,13 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // What: Replaced array spread with separate .some() checks and wrapped in useCallback
+  // Why: Array spreads inside render scope combined with high-frequency deviceorientation updates (up to 60fps) create significant O(N) memory allocations per frame, leading to GC thrashing. useCallback preserves referential equality.
+  // Impact: Eliminates O(N+M) array allocations per frame during scanning mode, reducing main thread blocking.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const match = (l: CollectedLandmark) => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(match) || localLandmarks.some(match);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {

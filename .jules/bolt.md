@@ -1,0 +1,3 @@
+## 2024-04-15 - Array Spreads in High-Frequency Render Cycles
+**Learning:** In applications with high-frequency event listeners like `deviceorientation` (up to 60fps), using array spreads (e.g., `[...arr1, ...arr2]`) inside render scopes or unmemoized callbacks creates significant O(N) memory allocations per frame, leading to severe garbage collection thrashing and main thread blocking.
+**Action:** Replace inline array combinations with separate iterations (like multiple `.some()` checks) and strictly wrap such functions in `useCallback` to maintain referential equality and avoid breaking child component memoization.
