@@ -1,0 +1,3 @@
+## 2024-05-14 - React Re-renders and Array Spread in High Frequency Events
+**Learning:** In a codebase heavily utilizing high-frequency events like `deviceorientation` (up to 60fps), simple array spread operators inside render (e.g. `[...a, ...b]`) cause severe memory allocation and garbage collection thrashing, severely degrading performance.
+**Action:** Always avoid creating new arrays or objects inline within components or functions called during rapid re-renders. Use separate checks (like `.some()`) and ensure callbacks are properly memoized using `useCallback` to preserve referential equality.
