@@ -1,0 +1,3 @@
+## 2024-03-01 - Prevent Accidental Feed Data Loss
+**Learning:** Because landmarks represent hard-earned, physical discoveries by users, accidental deletions are particularly painful. The `window.confirm` method provides an immediate, dependency-free safety net for destructive actions without disrupting the minimalist UI design. Furthermore, applying `focus-visible:ring-white` ensures keyboard navigability for custom icon-only components rendered against varied background colors.
+**Action:** Always wrap delete operations for user-collected data in a native confirmation dialog and ensure icon-only buttons include descriptive `aria-label`s and clear focus indicators.
