@@ -322,11 +322,13 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // What: Replaced array spreads with separate .some() checks and added useCallback
+  // Why: Eliminates O(N+M) array allocations and garbage collection thrashing during frequent renders
+  // Impact: Improved performance and referential equality
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return collectedLandmarks.some(l => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)) ||
+           localLandmarks.some(l => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001));
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
