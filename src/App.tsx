@@ -322,11 +322,15 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt: Prevent array allocation and O(N+M) traversal per frame during AR scanning mode
+  // Using sequential .some() with useCallback avoids main thread stuttering on high-frequency deviceorientation events
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return collectedLandmarks.some(l =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
+    ) || localLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {

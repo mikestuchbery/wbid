@@ -1,0 +1,3 @@
+## 2024-06-11 - Optimize memory allocation in high-frequency renders
+**Learning:** In the AR scanning mode (`isScanMode`), `deviceorientation` events cause high-frequency React re-renders (up to 60fps). Array spread operations (`[...a, ...b]`) inside render path functions create new array allocations on every frame, leading to heavy garbage collection pressure and main thread stuttering.
+**Action:** Replace array spread operations with sequential array methods (like `a.some() || b.some()`) and wrap callback functions in `useCallback` to maintain referential equality across high-frequency renders, preventing unnecessary re-renders of child components like `CameraView`.
