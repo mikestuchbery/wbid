@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid Array Spreads in Render Paths
+**Learning:** Using array spreads (like `[...a, ...b]`) inside functions that are called frequently during render or passed as props to components responding to 60fps events (like `deviceorientation`) causes continuous new array allocations. This leads to heavy garbage collection pressure and main thread stuttering.
+**Action:** Replace array spreads with separate iterations (e.g., separate `.some()` checks) and wrap the function in `useCallback` to maintain referential equality across renders, preventing unnecessary child component re-renders.
