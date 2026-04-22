@@ -1,0 +1,3 @@
+## 2024-05-15 - [Avoid Array Spreads in Render-Path Callbacks]
+**Learning:** In applications with highly frequent events (like 60fps `deviceorientation` sensor inputs), array spread operations (e.g., `[...a, ...b]`) inside render path functions or callbacks that aren't wrapped in `useCallback` create a new array on every render. This O(N+M) allocation leads to significant memory garbage collection pressure and main thread stuttering.
+**Action:** Replace inline array creation and spreads with functionally equivalent operations like sequential `.some()` checks or using dedicated variables, and memoize with `useCallback` to maintain referential equality.
