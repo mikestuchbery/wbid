@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoiding Array Spreads in Render-Path Callbacks
+**Learning:** In React components with high-frequency updates (like handling 60fps `deviceorientation` events), inline array spread operations (e.g., `[...a, ...b].some()`) cause significant $O(N+M)$ memory allocations on every render. This creates heavy garbage collection pressure, leading to main thread stuttering and dropped frames in the AR camera view.
+**Action:** Always wrap high-frequency render-path utility functions in `useCallback` to maintain referential equality. Avoid new array or object allocations within these functions; instead, use individual array methods (e.g., `a.some() || b.some()`) to achieve the same result without intermediate allocations.
