@@ -242,14 +242,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
             <button 
               onClick={onRefresh}
               disabled={isFetchingNearby}
-              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50"
+              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none"
               aria-label="Refresh Nearby Landmarks"
             >
               <RotateCcw className={cn("w-5 h-5", isFetchingNearby && "animate-spin")} />
             </button>
             <button 
               onClick={onClose} 
-              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
+              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none"
               aria-label="Close Camera"
             >
               <X className="w-5 h-5" />
