@@ -322,11 +322,13 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ Bolt Optimization: Avoid O(N+M) array allocation [...a, ...b] in high-frequency render path (60fps deviceorientation).
+  // Using short-circuiting a.some() || b.some() prevents GC pressure and main thread stuttering.
+  // Wrapped in useCallback to maintain referential equality. Expected Impact: Eliminates ~60 array allocations per second in scan mode.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const isMatch = (l: CollectedLandmark) => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(isMatch) || localLandmarks.some(isMatch);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {

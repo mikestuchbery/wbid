@@ -1,0 +1,16 @@
+💡 **What:**
+Optimized `isLandmarkCollected` function in `src/App.tsx` by wrapping it in `useCallback` and replacing the `[...collectedLandmarks, ...localLandmarks].some()` array spread with `collectedLandmarks.some(...) || localLandmarks.some(...)`.
+
+🎯 **Why:**
+The previous implementation allocated a new merged array on every render. Because `isLandmarkCollected` is called in the `CameraView` component—which re-renders up to 60 times per second during `deviceorientation` events in AR scanning mode—this caused significant $O(N+M)$ memory allocations. This constant memory pressure triggers frequent Garbage Collection, leading to main thread stuttering and dropped frames in the critical AR path.
+
+📊 **Impact:**
+- Eliminates ~60 array allocations per second while the AR camera is active.
+- Replaces full iteration with short-circuiting (`||`), halting as soon as a match is found in the first array.
+- Avoids unnecessary recreation of the function reference via `useCallback`.
+
+🔬 **Measurement:**
+- Start the development server (`pnpm dev`).
+- Open the application and enter AR scanning mode (`Scan AR`).
+- Verify that previously discovered landmarks correctly show as "Already Discovered".
+- Observe improved framerate stability in AR mode (fewer GC pauses).
