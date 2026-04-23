@@ -1,0 +1,3 @@
+## 2024-04-23 - Add Focus-Visible Accessibility to Icon-Only Buttons
+**Learning:** Found an accessibility pattern specifically with icon-only buttons in this app missing explicit focus styling, making keyboard navigation difficult to track visually. Adding default `focus-visible` outline styles with ring utilities from the existing Tailwind configuration resolves this, improving keyboard interactions.
+**Action:** Always add `focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none` alongside `aria-label` to icon-only buttons (`<X />`, `<Trash2 />`, etc.) across this app to maintain keyboard navigational consistency and meet accessibility standards.

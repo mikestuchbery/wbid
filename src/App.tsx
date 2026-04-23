@@ -717,7 +717,11 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <button onClick={() => setError(null)} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
+              <button
+                onClick={() => setError(null)}
+                className="p-1 hover:bg-white/5 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none"
+                aria-label="Dismiss error"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -760,7 +764,7 @@ export default function App() {
                     </div>
                     <button 
                       onClick={logout}
-                      className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+                      className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none"
                       aria-label="Logout"
                     >
                       <LogOut className="w-4 h-4" />
@@ -848,7 +852,13 @@ export default function App() {
                   <div className="relative aspect-[4/3] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white/10">
                     <img src={image} alt="Preview" className="w-full h-full object-cover" />
                     {isAnalyzing && <div className="scanning-line" />}
-                    <button onClick={() => setImage(null)} className="absolute top-6 right-6 p-3 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors z-30"><X className="w-5 h-5" /></button>
+                    <button
+                      onClick={() => setImage(null)}
+                      className="absolute top-6 right-6 p-3 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors z-30 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none"
+                      aria-label="Clear image"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                     {!result && !isAnalyzing && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                         <button 
