@@ -322,11 +322,14 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ BOLT OPTIMIZATION: Avoid O(N+M) array allocation [...a, ...b] on every render path.
+  // Sequential .some() checks avoid garbage collection pressure, which is critical since
+  // this is used in the CameraView component which re-renders constantly during AR scanning.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const isMatch = (l: { name: string; lat: number; lng: number }) =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(isMatch) || localLandmarks.some(isMatch);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
