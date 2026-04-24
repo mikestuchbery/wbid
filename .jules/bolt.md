@@ -1,0 +1,3 @@
+## 2024-03-24 - Avoid Memory Allocations in High-Frequency Render Paths
+**Learning:** In a high-frequency render path, such as when processing `deviceorientation` events at 60fps, creating new objects or arrays on every render (e.g., using array spread `[...a, ...b]`) causes heavy garbage collection pressure, leading to stuttering and main thread blocking.
+**Action:** Always avoid unnecessary memory allocations inside render-path functions or props for components subject to high-frequency updates. Use `useCallback` to maintain referential equality and replace operations that create new arrays (like array spread) with allocation-free alternatives (like chaining `.some()` calls).
