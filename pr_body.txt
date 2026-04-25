@@ -1,0 +1,7 @@
+💡 What: Optimized `isLandmarkCollected` in `src/App.tsx` by replacing the `[...collectedLandmarks, ...localLandmarks]` array spread with two chained `.some()` calls and wrapping it in `useCallback`.
+
+🎯 Why: The original function was recreating a combined array every time it was called. Since this is passed as a prop to components like `CameraView` which reacts to frequent 60fps `deviceorientation` events in AR mode, it was causing $O(N+M)$ memory allocations and contributing to garbage collection pressure and main thread stuttering.
+
+📊 Impact: Completely eliminates the array spread allocation per call, leveraging short-circuit evaluation for early returns, reducing GC overhead and re-renders for children.
+
+🔬 Measurement: Run `pnpm dev`, activate the AR scanning mode, and profile the memory usage. There should be significantly fewer small allocations over time.
