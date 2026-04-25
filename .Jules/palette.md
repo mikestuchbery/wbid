@@ -1,0 +1,3 @@
+## 2024-05-24 - Explicit Accessibility for Icon-only Buttons
+**Learning:** In this application's custom UI, default focus rings are often masked or suppressed by custom utility classes (`glass`, explicit borders). Consequently, keyboard focus indicators on interactive elements are completely absent unless explicitly defined. Icon-only buttons (like `<X />` and `<Trash2 />`) also lack accessible names by default.
+**Action:** Always provide explicit `aria-label`s for icon-only buttons. Additionally, apply `focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none` (or a semantic color like `ring-red-400` for destructive actions) to ensure keyboard users have clear visual feedback when navigating the interface.
