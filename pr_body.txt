@@ -1,0 +1,6 @@
+💡 **What:** Added explicit `aria-label` attributes and semantic `focus-visible` styles to icon-only buttons (`<X />` in Error Toast and Image Preview, and `<Trash2 />` in the Chronicle Feed). Also documented critical custom-UI accessibility constraints in `.Jules/palette.md`.
+🎯 **Why:** Default focus rings are suppressed in this application due to custom styling (`glass` and layout constraints), rendering keyboard navigation completely invisible. Additionally, screen readers had no accessible names for these critical actions (dismiss, close, delete).
+📸 **Before/After:**
+- Before: Keyboard users could not see when these buttons were focused. Screen reader users only heard "button" with no context.
+- After: Keyboard focus is visually confirmed with a glowing gold (`ring-brand-accent`) or red (`ring-red-400`) ring. Screen readers now announce "Dismiss alert", "Close image preview", or "Delete [Landmark Name]".
+♿ **Accessibility:** Solves critical WCAG Name, Role, Value (4.1.2) and Focus Visible (2.4.7) violations on interactive elements.
