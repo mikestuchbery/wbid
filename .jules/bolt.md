@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid object/array allocations in high-frequency event handlers
+**Learning:** React components responding to high-frequency events, like 60fps `deviceorientation` for AR camera views, are incredibly sensitive to garbage collection pressure. Inline array spread operations (`[...a, ...b]`) or new object allocations in render-path functions cause significant main thread stutter.
+**Action:** Always memoize derived arrays using `useMemo` at the top level, and use `useCallback` for functions passed as props, rather than allocating new arrays or functions inline during every render.
