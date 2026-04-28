@@ -1,0 +1,4 @@
+💡 What: Extract the combined `[...collectedLandmarks, ...localLandmarks]` array into a memoized `allLandmarks` reference using `useMemo`.
+🎯 Why: Creating a new array reference via spread operator inside `isLandmarkCollected` and the `FeedSystem` prop during every render causes excessive garbage collection pressure, particularly noticeable during 60fps AR scans.
+📊 Impact: Prevents unnecessary object allocations on rapid re-renders and stops `FeedSystem` from re-rendering unecessarily when other state changes.
+🔬 Measurement: Verify visually via the AR scan and Chronicle components, noting no visual stuttering.
