@@ -1,0 +1,3 @@
+## 2024-05-18 - AR Overlay Keyboard Accessibility
+**Learning:** Icon-only buttons overlaid on full-screen AR views (like the `CameraView` capture reticle) are practically invisible to screen readers without dynamic aria-labels that announce the current targeting state, and fail keyboard navigation checks without high-contrast focus rings against the dark camera feed.
+**Action:** Always provide dynamically computed `aria-label` properties on AR capture controls (e.g. 'No target locked' vs 'Capture [Name]'), and ensure focus states use large offsets (`focus-visible:ring-offset-black`) to contrast with video backgrounds.
