@@ -1,0 +1,3 @@
+## 2024-04-30 - Main Thread Stuttering from React Render Allocations
+**Learning:** Using array spread operations like `[...collectedLandmarks, ...localLandmarks]` directly inside render-path functions or props causes high-frequency memory allocations, especially in components receiving rapidly changing state (e.g., `CameraView` responding to 60fps `deviceorientation` events). This leads to main thread stuttering due to garbage collection pressure.
+**Action:** Always wrap derived arrays with `useMemo` and functions that depend on them with `useCallback` when they are passed down to child components that can be re-rendered at a high frequency. Avoid creating new arrays or object instances on the fly within the render body.
