@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Camera, MapPin, History, Info, Loader2, X, Compass, 
@@ -322,11 +322,19 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt Performance Optimization:
+  // Memoize the combined array to prevent O(N+M) allocations during high-frequency render cycles
+  // (e.g., during 60fps AR scanning). This reduces garbage collection pressure and main thread stuttering.
+  const allLandmarks = useMemo(() => {
+    return [...collectedLandmarks, ...localLandmarks];
+  }, [collectedLandmarks, localLandmarks]);
+
+  // Memoize the callback so that child components receiving it as a prop don't unnecessarily re-render
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [allLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -788,7 +796,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
+            landmarks={allLandmarks}
             onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
             userLocation={location}
           />
