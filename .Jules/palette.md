@@ -1,0 +1,3 @@
+## 2026-05-02 - AR Screen Reader Accessibility
+**Learning:** AR scanner interfaces often rely heavily on purely visual cues for targeting (e.g. crosshairs snapping or visual indicators changing state). This creates an accessibility gap because screen readers cannot interpret these dynamic canvas/video overlays.
+**Action:** Always provide dynamic `aria-label` properties on AR capture controls that explicitly announce the targeting state (e.g. "No target locked", "Capture [Target Name]") to ensure visually impaired users have the necessary context.
