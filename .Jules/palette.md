@@ -1,0 +1,3 @@
+## 2024-05-03 - AR Capture Button Accessibility
+**Learning:** AR scanner views like CameraView.tsx rely heavily on visual cues for targeting that are inaccessible to screen readers. AR capture controls require dynamic `aria-label` properties explicitly announcing the targeting state (e.g., 'No target locked', 'Capture [Target Name]') to provide context for visually impaired users.
+**Action:** Always provide dynamic `aria-label` properties on AR capture controls and ensure high-contrast focus states (e.g., `focus-visible:ring-offset-black`) for buttons overlaid on dark backgrounds or video streams.
