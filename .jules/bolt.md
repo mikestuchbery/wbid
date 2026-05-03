@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid array spreads in frequently called functions
+**Learning:** The `isLandmarkCollected` function in `App.tsx` creates a new array via spread (`[...collectedLandmarks, ...localLandmarks]`) every time it is called. Since it's passed as a prop (`checkCollected`) to `CameraView` and used in `useMemo` hooks and mapped components there, this triggers many allocations and potential O(N+M) performance hits during 60fps AR scanning.
+**Action:** Use `useMemo` to memoize the combined array (`allLandmarks`) and reference that in `isLandmarkCollected`, or update the function to avoid the spread.
