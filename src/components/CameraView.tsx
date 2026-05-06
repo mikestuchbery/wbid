@@ -219,6 +219,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             </AnimatePresence>
 
             <button
+              aria-label={isTargetCollected ? 'Already Discovered ' + activeTarget?.name : activeTarget ? 'Capture ' + activeTarget.name : 'No target locked'}
               onClick={() => activeTarget && !isTargetCollected && onCollect(activeTarget)}
               disabled={!activeTarget || isSaving || isTargetCollected}
               className={cn(
