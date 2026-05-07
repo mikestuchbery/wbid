@@ -1,0 +1,9 @@
+💡 **What:** Added a dynamic `aria-label` to the AR scanner's central capture button in `CameraView.tsx` to explicitly announce its state ("No target locked", "Capture X", "Already discovered X"). Also added high-contrast `focus-visible` rings (`focus-visible:ring-brand-accent focus-visible:ring-offset-black`) to the capture, refresh, and close buttons.
+
+🎯 **Why:** AR scanner interfaces rely almost entirely on visual HUD overlays to communicate targeting locks and statuses. This leaves screen reader users completely unaware of when they can capture a target or what they are capturing. Additionally, standard keyboard focus states are often lost against dark or busy live video feeds, making high-contrast offsets necessary.
+
+📸 **Before/After:** No visual changes for pointer users. Keyboard navigators will now see distinct gold focus rings with black offsets on the AR controls.
+
+♿ **Accessibility:**
+- Significantly improves screen reader experience in the AR mode by providing real-time state via dynamic `aria-label`s.
+- Improves keyboard navigation visibility over video feeds using Tailwind `focus-visible:ring-offset` utilities.
