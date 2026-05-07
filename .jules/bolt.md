@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid Array Spreads in Render-Path Functions for High-Frequency Components
+**Learning:** Functions passed as props to components subjected to high-frequency updates (e.g., `CameraView` responding to 60fps `deviceorientation` events) should avoid creating new array allocations inside their logic (like `[...collectedLandmarks, ...localLandmarks]`). In `isLandmarkCollected`, this caused O(N+M) allocations multiple times per frame, putting pressure on the garbage collector and causing stuttering.
+**Action:** Memoize concatenated arrays (`useMemo`) outside the render loop and reuse them inside helper functions wrapped with `useCallback`. This pattern ensures reference stability and skips expensive memory allocations.
