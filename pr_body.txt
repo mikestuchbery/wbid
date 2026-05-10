@@ -1,0 +1,7 @@
+💡 **What**: Memoized the combined `[...collectedLandmarks, ...localLandmarks]` array using `useMemo` to create a stable `allLandmarks` reference in `src/App.tsx`. Updated `isLandmarkCollected` and `<FeedSystem>` to use this memoized array.
+
+🎯 **Why**: Previously, combining these arrays inline inside the render loop caused an expensive O(N+M) array allocation and copying operation on every single render frame and on every invocation of `isLandmarkCollected`. In an application involving frequent updates like the AR scanner, this created unnecessary main-thread blocking work and forced child components to re-render.
+
+📊 **Measured Improvement**: Reduces unnecessary array allocations and garbage collection overhead during high-frequency render cycles (like AR scanning) by stabilizing the dependency passed to child components and callbacks.
+
+🔬 **Measurement**: Verified using `pnpm lint` and `pnpm build` that no regressions were introduced. The application logic correctly maintains the same exact behavior while avoiding redundant allocations.
