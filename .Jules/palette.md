@@ -1,0 +1,3 @@
+## 2024-05-14 - AR View Accessibility Improvements
+**Learning:** AR views and camera overlays heavily rely on visual cues (like reticles and tooltips overlaying the video feed) for targeting information, rendering them largely inaccessible to screen readers without specific intervention. Users must manually deduce if a target is locked or collected without explicit feedback.
+**Action:** Always provide dynamically-updating `aria-label` attributes on primary interaction elements (like Capture buttons) in AR contexts to actively announce the current visual targeting state (e.g., 'Capture Eiffel Tower', 'No target locked') to screen readers.
