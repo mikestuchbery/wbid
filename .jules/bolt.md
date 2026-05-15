@@ -1,0 +1,3 @@
+## 2025-03-09 - Unnecessary Array Allocation During Render
+**Learning:** In React components like `App.tsx` where high-frequency render cycles occur (like AR camera scanning view which depends on device orientation changes or frame updates), repeatedly spreading and allocating new arrays on every render (e.g., `[...collectedLandmarks, ...localLandmarks]`) causes unnecessary garbage collection and degrades performance. Furthermore, passing a newly allocated array or dynamically recreated function to child components breaks their ability to rely on prop equality.
+**Action:** Use `useMemo` to memoize derived composite arrays and `useCallback` for functions referencing them, to ensure stable object references and eliminate redundant allocations on every render.
