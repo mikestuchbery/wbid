@@ -1,0 +1,3 @@
+## 2026-05-16 - Prevent High-Frequency Allocation in React Component
+**Learning:** Derived arrays created inline (e.g., `[...a, ...b]`) are reallocated on every render, causing O(N+M) overhead. When these arrays are used in functions passed to components that re-render frequently (such as the AR scanner's `requestAnimationFrame`-driven loop), this allocation overhead severely degrades performance and causes visual stuttering.
+**Action:** Always wrap derived arrays in `useMemo` and functions that depend on them in `useCallback` when they are passed to child components or used in high-frequency rendering contexts.
