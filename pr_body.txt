@@ -1,0 +1,11 @@
+💡 **What**:
+Memoized the concatenation of `collectedLandmarks` and `localLandmarks` into an `allLandmarks` array using `useMemo`. Wrapped `isLandmarkCollected` in a `useCallback`.
+
+🎯 **Why**:
+Previously, `[...collectedLandmarks, ...localLandmarks]` was being created inline on every single render. This function is heavily used and is passed into the `CameraView` AR scanner, which runs in a high-frequency render cycle. The constant inline array allocation caused O(N+M) overhead and degraded rendering performance.
+
+📊 **Impact**:
+Eliminates unnecessary array allocations and garbage collection on every render. Improves overall component stability and performance, especially during AR scanning when the main thread is heavily utilized.
+
+🔬 **Measurement**:
+Verified locally via Playwright UI tests. Can be verified by observing smoother frame rates in `CameraView` and profiling render cycles in the React DevTools to confirm `allLandmarks` is not being continuously re-allocated.
