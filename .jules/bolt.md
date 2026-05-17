@@ -1,0 +1,3 @@
+## 2024-05-15 - Avoid O(N+M) array allocations during high-frequency render cycles
+**Learning:** In `src/App.tsx`, we were creating a new array `[...collectedLandmarks, ...localLandmarks]` every time `isLandmarkCollected` was called, and when rendering `FeedSystem`. This is an O(N+M) allocation on every render and every call. In AR mode with high-frequency render cycles or frequent location checks, this causes excessive garbage collection and frame drops.
+**Action:** Use `useMemo` to memoize the combined array `allLandmarks` so it only reallocates when `collectedLandmarks` or `localLandmarks` change. Wrap `isLandmarkCollected` with `useCallback` to prevent unnecessary allocations.
