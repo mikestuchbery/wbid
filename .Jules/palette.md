@@ -1,0 +1,3 @@
+## 2026-05-18 - AR Overlay Controls Accessibility
+**Learning:** AR scanner views heavily rely on visual cues (like reticles and styling changes) for targeting that are inaccessible to screen readers. Furthermore, standard focus rings often get lost against the dark/varying backgrounds of camera feeds and overlays.
+**Action:** Always provide dynamic `aria-label` properties on AR capture controls to explicitly announce the targeting state (e.g., 'No target locked', 'Capture [Target Name]'). Also, ensure high-contrast focus states for buttons overlaid on video streams by combining `focus-visible:ring-*` with large, contrasting offsets (e.g., `focus-visible:ring-offset-black`).
