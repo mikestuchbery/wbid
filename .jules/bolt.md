@@ -1,0 +1,3 @@
+## 2025-05-18 - High-Frequency Array Allocations in AR Mode
+**Learning:** During AR scanning modes (like `CameraView` receiving device heading updates), the parent `App` component goes through high-frequency render cycles. Creating new array allocations on every render (e.g., `[...collectedLandmarks, ...localLandmarks]`) causes O(N+M) complexity directly in the render path, putting pressure on garbage collection and causing micro-stutters during camera interactions.
+**Action:** Always memoize derived collection structures like `allLandmarks` with `useMemo`, and stabilize heavily-used check functions (`isLandmarkCollected`) passed as props to AR components using `useCallback`. This pattern reduces GC pressure and stabilizes the render tree.
