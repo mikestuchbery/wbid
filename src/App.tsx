@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Camera, MapPin, History, Info, Loader2, X, Compass, 
@@ -322,11 +322,15 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  const allLandmarks = useMemo(() => {
+    return [...collectedLandmarks, ...localLandmarks];
+  }, [collectedLandmarks, localLandmarks]);
+
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
+  }, [allLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -788,7 +792,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
+            landmarks={allLandmarks}
             onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
             userLocation={location}
           />
@@ -928,12 +932,12 @@ export default function App() {
               >
                 <History className="w-5 h-5" aria-hidden="true" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
-                {(collectedLandmarks.length + localLandmarks.length) > 0 && (
+                {allLandmarks.length > 0 && (
                   <span className={cn(
                     "px-1.5 rounded-md text-[10px]",
                     showChronicle ? "bg-brand-bg/20" : "bg-white/10"
                   )}>
-                    {collectedLandmarks.length + localLandmarks.length}
+                    {allLandmarks.length}
                   </span>
                 )}
               </button>
