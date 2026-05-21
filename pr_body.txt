@@ -1,0 +1,4 @@
+💡 What: Wrapped `isLandmarkCollected` in `useCallback` and replaced array concatenation `[...collectedLandmarks, ...localLandmarks]` with sequential `.some()` checks. Added a journal entry to `.jules/bolt.md`.
+🎯 Why: `isLandmarkCollected` was passed down to `CameraView` and executed for every nearby landmark during high-frequency orientation updates. The array concatenation created a new array on every call, leading to memory bloat and garbage collection micro-stutters.
+📊 Impact: Eliminates unnecessary array allocations in a hot path, reducing GC pressure and stabilizing framerates in the AR view during device movement.
+🔬 Measurement: Verify by running the AR view, moving the device to trigger orientation updates, and observing memory usage/framerates. Automated linter and Playwright UI tests pass.
