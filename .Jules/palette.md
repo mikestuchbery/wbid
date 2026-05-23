@@ -1,0 +1,3 @@
+## 2024-05-23 - AR Targeting Screen Reader Accessibility
+**Learning:** AR scanner views and visual reticles rely entirely on visual cues that are inaccessible to screen readers. For users unable to see the visual targeting elements, there is zero indication when the scanner has successfully "locked on" to a target.
+**Action:** When building AR/Camera overlays, ensure the primary capture button uses a highly dynamic `aria-label` that explicitly announces the targeting state (e.g., "No target locked", "Capture [Target Name]", "Already discovered [Target Name]"). This maps the visual targeting state to a semantic state that screen readers can convey.
