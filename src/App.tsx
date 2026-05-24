@@ -848,7 +848,7 @@ export default function App() {
                   <div className="relative aspect-[4/3] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white/10">
                     <img src={image} alt="Preview" className="w-full h-full object-cover" />
                     {isAnalyzing && <div className="scanning-line" />}
-                    <button onClick={() => setImage(null)} className="absolute top-6 right-6 p-3 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors z-30"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setImage(null)} aria-label="Clear image" className="absolute top-6 right-6 p-3 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black"><X className="w-5 h-5" /></button>
                     {!result && !isAnalyzing && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                         <button 
