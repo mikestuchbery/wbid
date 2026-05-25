@@ -201,11 +201,13 @@ export default function App() {
     localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
   };
 
-  const deleteLocal = (id: string) => {
-    const updated = localLandmarks.filter(l => l.id !== id);
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+  const deleteLocal = useCallback((id: string) => {
+    setLocalLandmarks(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const login = async () => {
     try {
@@ -322,12 +324,21 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
+  // ⚡ Bolt: Memoize the combined array to prevent recreating it on every render,
+  // which causes unnecessary garbage collection pressure and micro-stutters during
+  // frequent state updates like device orientation (heading) changes.
+  const allLandmarks = React.useMemo(() => {
+    return [...collectedLandmarks, ...localLandmarks];
+  }, [collectedLandmarks, localLandmarks]);
+
+  // ⚡ Bolt: Memoize the check function so it's not recreated on every render.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    return allLandmarks.some(l =>
       l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
     );
-  };
-  const deleteCollected = async (id: string) => {
+  }, [allLandmarks]);
+
+  const deleteCollected = useCallback(async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
       await deleteDoc(doc(db, 'saved_landmarks', id));
@@ -335,7 +346,11 @@ export default function App() {
       handleFirestoreError(err, OperationType.DELETE, path);
       console.error("Delete failed:", err);
     }
-  };
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
+    id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id);
+  }, [deleteLocal, deleteCollected]);
 
   // --- Device Logic ---
   const getGPSLocation = useCallback(() => {
@@ -788,8 +803,8 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 pb-32">
         {showChronicle ? (
           <FeedSystem 
-            landmarks={[...collectedLandmarks, ...localLandmarks]} 
-            onDelete={(id) => id.startsWith('local_') ? deleteLocal(id) : deleteCollected(id)} 
+            landmarks={allLandmarks}
+            onDelete={handleDelete}
             userLocation={location}
           />
         ) : (
@@ -928,12 +943,12 @@ export default function App() {
               >
                 <History className="w-5 h-5" aria-hidden="true" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Chronicle</span>
-                {(collectedLandmarks.length + localLandmarks.length) > 0 && (
+                {allLandmarks.length > 0 && (
                   <span className={cn(
                     "px-1.5 rounded-md text-[10px]",
                     showChronicle ? "bg-brand-bg/20" : "bg-white/10"
                   )}>
-                    {collectedLandmarks.length + localLandmarks.length}
+                    {allLandmarks.length}
                   </span>
                 )}
               </button>
