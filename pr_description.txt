@@ -1,0 +1,4 @@
+💡 What: Added dynamic `aria-label`s to the AR capture button to announce state, and added high-contrast `focus-visible` states to all interactive buttons in the camera view.
+🎯 Why: Screen readers cannot process AR visual markers. These dynamic labels explicitly announce the lock state (e.g., 'Capture Eiffel Tower'). The focus states enable keyboard navigation inside the modal.
+📸 Before/After: Visual focus rings added to buttons in camera view; hidden accessible text added for screen readers.
+♿ Accessibility: Ensures target lock states are properly announced and allows keyboard operation of the entire AR view.
