@@ -1,0 +1,3 @@
+## 2025-02-18 - Avoid array allocations in high-frequency renders
+**Learning:** In components that receive high-frequency state updates like device orientation (e.g., `heading` state causing rapid re-renders in `CameraView`), defining unmemoized arrays or performing array allocations (like spread operator `[...a, ...b]`) in the render path or in parent components passing callbacks causes severe garbage collection pressure and micro-stutters.
+**Action:** Always wrap callbacks used by AR/camera components in `useCallback` with correct dependencies, and optimize inner logic to avoid temporary object/array allocations.
