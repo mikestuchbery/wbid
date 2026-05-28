@@ -1,0 +1,3 @@
+## 2024-05-28 - High-Frequency Render Loop Allocations
+**Learning:** The `CameraView` component receives frequent device orientation updates (e.g., `heading` state changes), causing high-frequency render loops. Defining unmemoized arrays or performing object allocations (such as using the spread operator `[...a, ...b]`) within its render path or in parent components passing props to it (like `App.tsx`) causes severe garbage collection pressure and micro-stutters.
+**Action:** Always memoize arrays, objects, and functions (using `useMemo` and `useCallback`) passed as props to components that experience high-frequency renders, such as those relying on device sensors or camera streams. Avoid inline array spreads like `[...a, ...b]` in render paths.
