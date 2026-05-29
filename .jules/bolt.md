@@ -1,0 +1,3 @@
+## 2024-05-24 - Array Spreads in Render Path
+**Learning:** `CameraView` component receives extremely frequent `heading` state changes (device orientation updates) which triggered frequent re-evaluations of `isTargetCollected` and `isLandmarkCollected`. The unmemoized array spread `[...collectedLandmarks, ...localLandmarks]` was causing new arrays to be allocated on every single frame, causing severe garbage collection pressure and micro-stutters.
+**Action:** When a function is called frequently in a hot loop (like device orientation renders), avoid array spreading/allocation. Use sequential checks (like `.some() || .some()`) and ensure the function itself is memoized with `useCallback` when passed to child components.
