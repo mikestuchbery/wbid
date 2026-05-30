@@ -1,0 +1,7 @@
+💡 What: Optimized the `isLandmarkCollected` function in `src/App.tsx` by removing the intermediate array spread (`[...collected, ...local]`) and replacing it with sequential `.some()` array evaluations. Additionally, wrapped the function in a `useCallback` hook with the correct dependencies.
+
+🎯 Why: The original implementation caused a new array allocation on every call. Because this function was passed as an unmemoized prop (`checkCollected`) into the `CameraView` component—which receives high-frequency orientation updates (heading changes)—it triggered excessive garbage collection pressure and micro-stutters during the device render loop.
+
+📊 Impact: Reduces memory overhead and avoids continuous array instantiation in hot render paths, yielding a smoother AR experience with fewer GC pauses.
+
+🔬 Measurement: Verify by starting a local dev server (`pnpm dev`) and navigating to the application. Launch the AR scan functionality (point at a landmark). The camera view should load and function accurately without unexpected re-renders or stuttering. Type checking (`pnpm lint`) passes with no regressions.
