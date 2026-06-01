@@ -1,0 +1,13 @@
+💡 What:
+Added a dynamic `aria-label` to the main AR capture button to accurately reflect its state (saving, collected, locked on target, or no target). Added high-contrast keyboard focus styles (`focus-visible:ring-offset-black`) to the capture, refresh, and close buttons on the camera overlay.
+
+🎯 Why:
+To ensure visually impaired users using screen readers understand the context and purpose of the icon-only camera buttons. Also, interactive elements overlaid on dark video streams lack clear focus contrast by default, making keyboard navigation difficult.
+
+📸 Before/After:
+Before: Buttons had no dynamic aria labels or distinct focus rings.
+After: Buttons communicate their status effectively via ARIA and highlight clearly when navigated with the keyboard.
+
+♿ Accessibility:
+- Dynamic screen reader announcements based on targeting state.
+- Highly visible focus rings on dark/video backgrounds for improved keyboard navigability.

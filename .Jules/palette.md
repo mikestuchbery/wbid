@@ -1,0 +1,3 @@
+## 2024-05-18 - Improve accessibility of AR Camera UI controls
+**Learning:** Interactive elements overlaid on dark backgrounds or video streams (like the AR camera view) lack contrast for default focus outlines. Additionally, dynamic icon-only buttons (like a capture button whose state changes based on target lock) need dynamically updating `aria-label` attributes to accurately reflect their state to screen readers.
+**Action:** Use high-contrast focus states with contrasting ring offsets (e.g., `focus-visible:ring-offset-black`) for buttons over video streams. Always use state-dependent ternary logic for `aria-label`s on multi-purpose icon buttons.
