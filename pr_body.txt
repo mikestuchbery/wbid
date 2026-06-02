@@ -1,0 +1,7 @@
+💡 **What**: Added dynamic `aria-label` attributes to the main AR capture button to accurately describe its state (e.g., "Saving landmark", "Landmark already collected", etc.). Implemented high-contrast keyboard focus indicators (`focus-visible:ring-offset-black`) to the capture, refresh, and close buttons on the `CameraView` component. Also marked decorative internal icons with `aria-hidden="true"`.
+🎯 **Why**: Multi-purpose buttons that change functionality without updating context create confusion for screen reader users. Additionally, relying on default focus rings over varied dark backgrounds or video streams fails contrast standards, making keyboard navigation difficult for sighted users with mobility or vision impairments.
+📸 **Before/After**: Before, the primary capture button lacked any `aria-label` entirely and had no visible keyboard focus state. Now, it has an explicit dynamic label, and all interactive overlay elements feature a clear white/brand-accent focus ring with a solid black offset to stand out against the camera stream.
+♿ **Accessibility**:
+  * Improved screen reader support for dynamic multi-state buttons.
+  * Ensured WCAG-compliant keyboard focus contrast for interactive overlays.
+  * Reduced redundant screen reader chatter by hiding decorative inner icons.
