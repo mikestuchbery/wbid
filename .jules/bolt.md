@@ -1,0 +1,3 @@
+## 2024-05-24 - Array Allocations in High-Frequency Render Paths
+**Learning:** React components that receive frequent event updates (like `CameraView` receiving device orientation data) enter hot render loops. Allocating new arrays (e.g., using `[...a, ...b]`) or functions within these render paths or in parent components passing props to them causes severe garbage collection pressure and micro-stutters, as new references are created on every frame.
+**Action:** Replace array merges used for boolean checks with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and strictly memoize helper functions (using `useCallback` with correct dependency arrays) passed to high-frequency components to ensure stable references and avoid unnecessary object allocations.
