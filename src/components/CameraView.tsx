@@ -221,19 +221,28 @@ export const CameraView: React.FC<CameraViewProps> = ({
             <button
               onClick={() => activeTarget && !isTargetCollected && onCollect(activeTarget)}
               disabled={!activeTarget || isSaving || isTargetCollected}
+              aria-label={
+                isSaving
+                  ? "Saving landmark"
+                  : isTargetCollected
+                    ? "Landmark already collected"
+                    : activeTarget
+                      ? `Capture ${activeTarget.name}`
+                      : "No landmark in view"
+              }
               className={cn(
-                "w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 border-4",
+                "w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 border-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black",
                 activeTarget && !isTargetCollected
                   ? "bg-brand-accent border-white/20 shadow-[0_0_30px_rgba(212,175,55,0.6)]"
                   : "bg-white/5 border-white/10 opacity-50"
               )}
             >
               {isSaving ? (
-                <Loader2 className="w-8 h-8 animate-spin text-brand-bg" />
+                <Loader2 className="w-8 h-8 animate-spin text-brand-bg" aria-hidden="true" />
               ) : isTargetCollected ? (
-                <Check className="w-8 h-8 text-white" />
+                <Check className="w-8 h-8 text-white" aria-hidden="true" />
               ) : (
-                <Camera className={cn("w-8 h-8", activeTarget ? "text-brand-bg" : "text-white/30")} />
+                <Camera className={cn("w-8 h-8", activeTarget ? "text-brand-bg" : "text-white/30")} aria-hidden="true" />
               )}
             </button>
           </div>
@@ -242,17 +251,17 @@ export const CameraView: React.FC<CameraViewProps> = ({
             <button 
               onClick={onRefresh}
               disabled={isFetchingNearby}
-              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50"
+              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               aria-label="Refresh Nearby Landmarks"
             >
-              <RotateCcw className={cn("w-5 h-5", isFetchingNearby && "animate-spin")} />
+              <RotateCcw className={cn("w-5 h-5", isFetchingNearby && "animate-spin")} aria-hidden="true" />
             </button>
             <button 
               onClick={onClose} 
-              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10"
+              className="p-4 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all active:scale-90 border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               aria-label="Close Camera"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
