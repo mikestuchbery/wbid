@@ -1,0 +1,3 @@
+## 2024-05-24 - Dynamic ARIA labels and High-Contrast Focus Rings
+**Learning:** Dynamically changing icon-only buttons (like an AR capture button whose context depends on the active target) must implement dynamic `aria-label` attributes to accurately reflect their current state to screen readers. Furthermore, interactive elements overlaid on dark backgrounds or video streams require high-contrast focus states with contrasting ring offsets (e.g., `focus-visible:ring-offset-black`) to ensure clear visibility for keyboard navigation.
+**Action:** Always provide dynamic ARIA labels for buttons with state-dependent icons, and use `focus-visible:ring-offset-black` for focus indicators overlaying camera feeds or dark themes.
