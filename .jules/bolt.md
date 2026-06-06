@@ -1,0 +1,3 @@
+## 2025-06-06 - Array Allocation in Hot Render Loops
+**Learning:** Frequent device orientation updates (e.g., heading state changes) cause high-frequency render loops. Using the spread operator (`[...a, ...b]`) to merge arrays within this render path causes severe garbage collection pressure and micro-stutters.
+**Action:** Replace intermediate array allocations used for boolean checks with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and wrap the function in `useCallback` to prevent breaking child component memoization.
