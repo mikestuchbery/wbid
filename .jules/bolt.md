@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoiding Array Spreads in Hot Render Paths
+**Learning:** In components with high-frequency state updates like CameraView (driven by device orientation/heading events), intermediate array allocations (e.g., using [...a, ...b] for boolean checks) inside render paths or helper functions cause severe garbage collection pressure and micro-stutters.
+**Action:** Replace intermediate array allocations like [...a, ...b].some(...) with sequential evaluations a.some(...) || b.some(...) to eliminate unnecessary memory allocation and garbage collection overhead.
