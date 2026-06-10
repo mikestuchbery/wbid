@@ -322,11 +322,12 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ Bolt: Removed array spread to prevent intermediate array allocation and garbage collection overhead in the render path.
+  // Memoized with useCallback to prevent recreating the function on every render, especially when passed to CameraView which is highly dynamic.
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const checkFn = (l: CollectedLandmark) => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(checkFn) || localLandmarks.some(checkFn);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
