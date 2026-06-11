@@ -1,0 +1,3 @@
+## 2024-05-14 - Avoid array allocation in hot render loops
+**Learning:** The `CameraView` component receives frequent device orientation updates (e.g., `heading` state changes), causing high-frequency render loops. Defining unmemoized arrays or performing object allocations (such as using the spread operator `[...a, ...b]` to merge arrays) within its render path or in parent components passing props to it (like `App.tsx`) causes severe garbage collection pressure and micro-stutters.
+**Action:** Replace array merges used for boolean checks (e.g., `[...a, ...b].some(...)`) with sequential evaluations (e.g., `a.some(...) || b.some(...)`), and memoize the function with `useCallback`.
