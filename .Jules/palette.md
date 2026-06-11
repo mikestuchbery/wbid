@@ -1,0 +1,3 @@
+## 2024-05-24 - Camera View Accessibility
+**Learning:** Interactive elements overlaid on dark backgrounds or video streams (such as in CameraView) require specific high-contrast focus states with contrasting ring offsets (`focus-visible:ring-offset-black`) because standard focus rings are invisible against the dynamic camera feed. Furthermore, the main capture button context relies on AR state, making a static aria-label insufficient.
+**Action:** Always use `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black` for camera overlays. Implement dynamic `aria-label` attributes that articulate the current AR target state to provide full context to screen reader users.
