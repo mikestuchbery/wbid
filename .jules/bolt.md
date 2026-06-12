@@ -1,0 +1,3 @@
+## 2023-10-27 - Prevent Array Merges in High-Frequency Render Loops
+**Learning:** The `CameraView` component and its parent `App.tsx` receive frequent device orientation updates (`heading` changes multiple times per second). Unmemoized array merges (like `[...a, ...b]`) used for boolean checks inside these hot render paths create severe garbage collection pressure and micro-stutters.
+**Action:** Replace array merges with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and memoize functions with `useCallback` when passing them down to components bound to high-frequency state updates.
