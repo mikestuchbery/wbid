@@ -1,0 +1,3 @@
+## 2024-06-13 - Avoid Array Spreads in Render Hot Paths
+**Learning:** In components with high-frequency render loops (like `CameraView` receiving continuous `heading` updates), spreading arrays (e.g., `[...a, ...b].some(...)`) within helper functions called during render allocates intermediate arrays on every cycle, causing severe garbage collection pressure and micro-stutters.
+**Action:** Replace array spreads with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and memoize the helper function using `useCallback` to prevent unnecessary allocations and maintain referential stability.
