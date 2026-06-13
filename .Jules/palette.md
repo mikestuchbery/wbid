@@ -1,0 +1,3 @@
+## 2024-05-24 - Dynamic ARIA labels and High-Contrast Focus on Video Streams
+**Learning:** Icon-only buttons with dynamically changing contexts (like AR capture buttons targeting different landmarks) require dynamic `aria-label` attributes to accurately communicate their state. Additionally, interactive elements overlaid on video streams need high-contrast focus states with contrasting ring offsets (e.g., `focus-visible:ring-offset-black`) to be visible during keyboard navigation.
+**Action:** Use conditional logic for `aria-label` on dynamic icon buttons and apply `focus-visible:ring-offset-black` with bright rings for overlays on dark or video backgrounds.
