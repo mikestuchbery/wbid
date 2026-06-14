@@ -1,0 +1,3 @@
+## 2024-06-14 - Dynamic ARIA Labels & Video Stream Focus States
+**Learning:** Dynamically changing icon-only buttons (like the AR capture button whose context depends on the active target) require dynamic `aria-label` attributes to accurately reflect their state to screen readers. Additionally, interactive elements overlaid on dark backgrounds or video streams (like in CameraView) need high-contrast focus states with contrasting ring offsets (e.g., `focus-visible:ring-offset-black`) to ensure visibility during keyboard navigation.
+**Action:** Implement dynamic `aria-label` evaluation for multi-state icon buttons and apply `focus-visible:ring-offset-black` alongside outline rings for components layered over video feeds.
