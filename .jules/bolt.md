@@ -1,0 +1,3 @@
+## 2024-06-14 - Prevent array allocation in high-frequency renders
+**Learning:** The CameraView component and its parent App.tsx receive high-frequency device orientation updates (e.g. `heading` state changes) causing continuous re-renders. Using the spread operator (e.g. `[...a, ...b]`) within these render paths or passed props triggers severe garbage collection pressure and micro-stutters.
+**Action:** Avoid intermediate array allocations in hot render loops. Replace array merges for boolean checks with sequential evaluations (e.g. `a.some(...) || b.some(...)`) and memoize the functions using `useCallback`.
