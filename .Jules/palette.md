@@ -1,0 +1,3 @@
+## 2025-03-09 - Accessible AR View Controls
+**Learning:** Interactive elements overlaid on dark backgrounds or video streams (like AR camera views) lack sufficient contrast for default focus rings, and icon-only capture buttons lose context without dynamic screen reader labels reflecting target state.
+**Action:** Always implement `focus-visible:ring-offset-black` for elements on dark/video backgrounds and use state-dependent `aria-label` attributes on contextual AR buttons.
