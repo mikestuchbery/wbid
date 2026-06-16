@@ -1,0 +1,3 @@
+## 2024-06-16 - Prevent Array Allocations in High-Frequency Render Paths
+**Learning:** The `CameraView` component receives frequent device orientation updates (`heading` state changes) causing high-frequency render cycles. Creating new arrays within these hot paths (e.g., using `[...a, ...b].some()` during boolean evaluations) leads to severe garbage collection pressure and micro-stutters.
+**Action:** Avoid unmemoized object/array allocations in components with high-frequency render cycles. Replace array merges for boolean checks with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and memoize the check function with `useCallback` to maintain a stable reference and eliminate intermediate allocations.
