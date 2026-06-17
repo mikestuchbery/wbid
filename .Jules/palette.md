@@ -1,0 +1,3 @@
+## 2024-05-20 - Dynamic ARIA and High-Contrast Focus in Camera UI
+**Learning:** Interactive elements overlaid on dark backgrounds or video streams (such as in CameraView) require high-contrast focus states with contrasting ring offsets (e.g., `focus-visible:ring-offset-black`) to ensure clear visibility for keyboard navigation. Additionally, dynamically changing icon-only buttons (like an AR capture button whose context depends on the active target) must implement dynamic `aria-label` attributes to accurately reflect their current state to screen readers.
+**Action:** Always implement dynamic `aria-label` attributes for icon-only buttons whose state changes, and apply `focus-visible:ring-offset-black` for buttons rendered over media streams or dark backgrounds.
