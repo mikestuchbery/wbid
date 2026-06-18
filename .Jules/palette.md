@@ -1,0 +1,3 @@
+## 2023-10-27 - Dynamic ARIA Labels and High Contrast Focus on Video Overlays
+**Learning:** Interactive elements overlaid on dark backgrounds or video streams (like the CameraView AR scanner) require high-contrast focus states (e.g., `focus-visible:ring-offset-black`) to remain visible for keyboard navigation. Additionally, icon-only buttons with context-dependent states (like an AR capture button whose state changes based on target proximity) need dynamic `aria-label` attributes to accurately reflect their current state to screen readers.
+**Action:** Implement dynamic `aria-label`s for context-dependent icon buttons and always use contrasting ring offsets for focus styles on dark/video backgrounds.
