@@ -322,11 +322,12 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ Bolt: Removed intermediate array allocation for hot render loops by evaluating sequentially
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const isFound = (l: { name: string; lat: number; lng: number }) =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(isFound) || localLandmarks.some(isFound);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {

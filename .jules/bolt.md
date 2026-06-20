@@ -1,0 +1,3 @@
+## 2024-05-24 - Array spreading in hot render loops
+**Learning:** Using array spread syntax (`[...a, ...b]`) inside frequently executed functions (like those invoked during `deviceorientation` heading updates) creates excessive intermediate allocations and garbage collection pressure, leading to micro-stutters.
+**Action:** Evaluate arrays sequentially (`a.some() || b.some()`) instead of merging them to prevent unnecessary memory allocations during high-frequency renders.
