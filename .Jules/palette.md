@@ -1,0 +1,3 @@
+## 2025-03-05 - AR Camera Accessibility Enhancements
+**Learning:** Icon-only capture buttons in AR contexts lose their meaning without target-specific context for screen readers. Additionally, standard focus rings are invisible over the live camera feed without high-contrast offsets.
+**Action:** Always implement dynamic `aria-label` attributes reflecting the current AR target and use `focus-visible:ring-offset-black` for focus states over video streams.
