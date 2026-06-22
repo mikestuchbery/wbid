@@ -1,0 +1,3 @@
+## 2024-06-22 - Dynamic ARIA Labels and High-Contrast Focus States for Camera View
+**Learning:** Context-dependent icon-only buttons (like the AR capture button) must have dynamic `aria-label`s to accurately communicate their changing states to screen readers. Furthermore, interactive elements overlaid on dark backgrounds or video streams (like in CameraView) require high-contrast focus states (e.g., `focus-visible:ring-offset-black`) to ensure visibility for keyboard navigation.
+**Action:** Implement dynamic `aria-label` attributes reflecting the active target's state and apply `focus-visible:ring-offset-black` with contrasting rings to interactive elements over video streams to ensure full accessibility.
