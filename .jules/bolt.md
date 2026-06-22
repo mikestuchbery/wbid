@@ -1,0 +1,3 @@
+## 2024-10-18 - Avoiding GC Pressure in High-Frequency Orientation Loops
+**Learning:** The application experiences high-frequency render loops due to device orientation `heading` updates. Array spreads like `[...a, ...b]` used inside rendering paths or prop functions (e.g., `isLandmarkCollected` called per marker) allocate intermediate arrays 60+ times per second, causing severe garbage collection pressure and micro-stutters.
+**Action:** Avoid allocating new arrays or objects inside render paths or unmemoized prop callbacks triggered by orientation events. Use sequential evaluation (e.g., `a.some() || b.some()`) and memoize callback functions.

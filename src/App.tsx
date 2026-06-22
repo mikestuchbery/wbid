@@ -322,11 +322,14 @@ export default function App() {
     }
   };
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // ⚡ Bolt Performance Optimization: Prevent array allocations in hot render paths
+  // Replaced [...a, ...b].some(...) with a.some(...) || b.some(...) to avoid GC pressure
+  // Memoized with useCallback to preserve reference stability during high-frequency heading updates
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const check = (l: { name: string; lat: number; lng: number }) =>
+      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(check) || localLandmarks.some(check);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
