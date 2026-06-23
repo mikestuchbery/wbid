@@ -1,0 +1,3 @@
+## 2025-03-08 - Dynamic aria-labels on stateful AR Capture Button
+**Learning:** The AR capture button changes state based on active camera targets (e.g. no target, target locked, saving, collected). An icon-only button like this needs a dynamic `aria-label` so screen reader users know precisely what clicking the button will do (like "Capture Edinburgh Castle" vs "No target locked"). Also, buttons on dark/camera feed backgrounds need explicit `focus-visible:ring-offset-black` to remain visible to keyboard users.
+**Action:** Always verify that context-dependent icon buttons update their `aria-label` dynamically as their state changes, and apply dark ring offsets for overlays.
