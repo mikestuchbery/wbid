@@ -1,0 +1,3 @@
+## 2025-03-05 - Dynamic Context and High-Contrast Focus in AR Overlays
+**Learning:** Icon-only buttons in the AR CameraView component change context frequently (e.g., target acquired vs. no target) and overlay a dark, changing video stream. Static `aria-label`s fail to convey the current state to screen readers, and standard focus indicators get lost against the video background.
+**Action:** Always implement dynamic `aria-label`s that reflect the exact current AR context, and use high-contrast focus states with contrasting ring offsets (e.g., `focus-visible:ring-offset-black`) for clear keyboard navigation over video streams.
