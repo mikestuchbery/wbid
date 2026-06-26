@@ -1,0 +1,3 @@
+## 2025-03-01 - Avoid array spread in high-frequency orientation render paths
+**Learning:** The `App` component stores the `heading` state which updates rapidly via `deviceorientation`. Array spread operations (like `[...a, ...b]`) used inside functions called during the render path or in child components like `CameraView` cause high GC pressure and micro-stutters by creating new arrays many times a second.
+**Action:** Avoid array spread for boolean checks in hot paths. Replace them with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and memoize the callback to prevent unnecessary function allocations.
