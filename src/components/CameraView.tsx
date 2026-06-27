@@ -221,8 +221,9 @@ export const CameraView: React.FC<CameraViewProps> = ({
             <button
               onClick={() => activeTarget && !isTargetCollected && onCollect(activeTarget)}
               disabled={!activeTarget || isSaving || isTargetCollected}
+              aria-label={isSaving ? "Synchronizing history" : isTargetCollected ? "Target already discovered" : activeTarget ? `Capture ${activeTarget.name}` : "No target in range"}
               className={cn(
-                "w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 border-4",
+                "w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 border-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black",
                 activeTarget && !isTargetCollected
                   ? "bg-brand-accent border-white/20 shadow-[0_0_30px_rgba(212,175,55,0.6)]"
                   : "bg-white/5 border-white/10 opacity-50"

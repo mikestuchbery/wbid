@@ -1,0 +1,3 @@
+## 2026-06-27 - Dynamic ARIA labels and focus states for AR capture buttons
+**Learning:** Interactive elements overlaid on video streams or dynamic backgrounds (like AR camera views) require high-contrast focus states (`ring-offset-black`) to be visible during keyboard navigation. Additionally, icon-only capture buttons whose function changes based on target proximity must have dynamically updating `aria-label`s to inform screen readers of their current state.
+**Action:** Always implement `focus-visible:ring-offset-black` for interactive elements over video streams and use dynamic ternary logic for `aria-label` attributes on context-dependent icon buttons.
