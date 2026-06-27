@@ -1,0 +1,3 @@
+## 2025-06-27 - High-Frequency State Updates and GC Pressure
+**Learning:** The `App` component holds `heading` state which updates frequently from device orientation, causing high-frequency re-renders. Spreading arrays inside helper functions like `isLandmarkCollected` allocated new arrays on every render, leading to severe garbage collection pressure and micro-stutters during camera panning.
+**Action:** Avoid unmemoized array or object allocations (like the spread operator `[...a, ...b]`) in the render path or in callbacks of components with high-frequency state updates. Use sequential evaluations (e.g., `a.some(...) || b.some(...)`) and `useCallback` instead.
