@@ -1,0 +1,3 @@
+## 2025-03-05 - Optimize intermediate array allocation in `isLandmarkCollected`
+**Learning:** `isLandmarkCollected` uses `[...collectedLandmarks, ...localLandmarks].some(...)` to evaluate an item. This allocates an intermediate array on every render or camera view update which increases garbage collection pressure, leading to micro-stutters and slow render path performance, especially since `CameraView` may evaluate this condition rapidly as nearby landmarks move into view.
+**Action:** Replace `[...a, ...b].some(...)` with `a.some(...) || b.some(...)` to avoid array spread operation and prevent unnecessary array allocation and garbage collection overhead. Wrap with `useCallback` to prevent recreating the function on every render, ensuring stable reference.
