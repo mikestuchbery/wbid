@@ -1,0 +1,3 @@
+## 2024-06-28 - Dynamic ARIA Labels for State-Dependent Icon Buttons
+**Learning:** Icon-only buttons whose core functionality and context change dynamically (e.g., an AR capture button acting differently when no target is locked vs. when a specific target is locked) need their accessibility labels to actively reflect their current state. A static "Capture" label is insufficient when the button's action is dependent on the active reticle target.
+**Action:** Always implement dynamically evaluated `aria-label` attributes (e.g., ``aria-label={activeTarget ? `Capture ${activeTarget.name}` : "Scanning"}``) for context-dependent icon buttons.
