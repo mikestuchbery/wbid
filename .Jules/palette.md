@@ -1,0 +1,3 @@
+## 2025-03-05 - Dynamic ARIA Labels and High Contrast Focus for AR Interfaces
+**Learning:** Icon-only buttons within AR views often require dynamic context changes (e.g. state dependent on the currently active target being locked on or captured). Furthermore, overlaid elements on video streams need strong, high-contrast offset focus rings since the background video content is unpredictable.
+**Action:** When an icon-only button handles actions on dynamic targets, use conditional logic inside its `aria-label` to announce its exact current state to screen readers. For any interactive UI layered over media streams, apply `focus-visible:ring-offset-black` combined with a bright outer ring.
