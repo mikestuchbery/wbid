@@ -1,0 +1,3 @@
+## 2024-07-01 - Dynamic ARIA Labels & Video Overlays
+**Learning:** Icon-only buttons with dynamically changing context (like AR capture depending on the active target) need dynamic `aria-label` attributes to accurately reflect their current state to screen readers. In addition, interactive elements overlaid on video streams or dark backgrounds need high-contrast focus states (like `focus-visible:ring-offset-black`) to ensure keyboard navigability is visible.
+**Action:** Implemented dynamic `aria-label` for the AR capture button based on target/saving states and added `focus-visible:ring-offset-black` and focus ring utilities to buttons in the `CameraView`.
