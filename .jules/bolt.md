@@ -1,0 +1,3 @@
+## 2025-02-27 - AR View Hot Loop Bottleneck
+**Learning:** The `deviceorientation` event causes high-frequency (up to 60fps) re-renders in `CameraView`. Any props passed down from `App.tsx` (like `checkCollected`) are executed repeatedly during this hot loop. Performing array merges (e.g., `[...a, ...b].some(...)`) inside these callbacks leads to massive intermediate array allocations and garbage collection overhead, causing frame drops.
+**Action:** Prevent array allocation and GC overhead in hot render loops by replacing array merges with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and memoizing the function with `useCallback`.
