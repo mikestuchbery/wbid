@@ -1,0 +1,3 @@
+## 2024-05-18 - CameraView Contextual Buttons & Dark Background Focus
+**Learning:** AR capture buttons whose context depends on the active target require dynamic `aria-label` attributes to accurately reflect their current state to screen readers. Interactive elements overlaid on dark backgrounds or video streams must use high-contrast focus states (e.g., `focus-visible:ring-offset-black`) to ensure clear visibility for keyboard navigation.
+**Action:** Implement dynamic `aria-label` based on state and target, and add `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black` to button classes over dark backgrounds.
