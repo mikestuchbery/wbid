@@ -1,0 +1,3 @@
+## 2024-05-24 - Prevent GC overhead and array allocations in hot loops
+**Learning:** In high-frequency render loops like AR overlays (e.g., CameraView updating at 60fps), intermediate array allocations (like `[...a, ...b].some()`) cause significant garbage collection overhead. Furthermore, inline functions or non-memoized callbacks passed to these frequently rendering children break memoization, causing cascading re-renders.
+**Action:** Replace array merges with sequential evaluations (`a.some() || b.some()`) and ensure callbacks passed to high-frequency components are wrapped in `useCallback` with correctly managed dependencies.

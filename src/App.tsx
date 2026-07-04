@@ -189,17 +189,20 @@ export default function App() {
     }
   }, []);
 
-  const saveToLocal = (landmark: any) => {
+  // Bolt: Memoize callback to prevent breaking child memoization
+  const saveToLocal = useCallback((landmark: any) => {
     const newLandmark: CollectedLandmark = {
       ...landmark,
       id: `local_${Date.now()}`,
       uid: 'public',
       collectedAt: { seconds: Math.floor(Date.now() / 1000) }
     };
-    const updated = [newLandmark, ...localLandmarks];
-    setLocalLandmarks(updated);
-    localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
-  };
+    setLocalLandmarks(prev => {
+      const updated = [newLandmark, ...prev];
+      localStorage.setItem('wbid_local_chronicle', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const deleteLocal = (id: string) => {
     const updated = localLandmarks.filter(l => l.id !== id);
@@ -270,7 +273,8 @@ export default function App() {
     }
   };
 
-  const collectNearbyLandmark = async (lm: NearbyLandmark) => {
+  // Bolt: Memoize callback passed to CameraView hot loop
+  const collectNearbyLandmark = useCallback(async (lm: NearbyLandmark) => {
     setIsSaving(true);
     try {
       const activeLenses = LENSES.filter(l => selectedCategories.includes(l.id)).map(l => l.label).join(', ');
@@ -320,13 +324,13 @@ export default function App() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [selectedCategories, user, saveToLocal]);
 
-  const isLandmarkCollected = (name: string, lat: number, lng: number) => {
-    return [...collectedLandmarks, ...localLandmarks].some(l => 
-      l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001)
-    );
-  };
+  // Bolt: Prevent array allocation on every check by evaluating arrays sequentially, and memoize
+  const isLandmarkCollected = useCallback((name: string, lat: number, lng: number) => {
+    const check = (l: { name: string; lat: number; lng: number }) => l.name === name || (Math.abs(l.lat - lat) < 0.0001 && Math.abs(l.lng - lng) < 0.0001);
+    return collectedLandmarks.some(check) || localLandmarks.some(check);
+  }, [collectedLandmarks, localLandmarks]);
   const deleteCollected = async (id: string) => {
     const path = `saved_landmarks/${id}`;
     try {
@@ -386,7 +390,8 @@ export default function App() {
     }
   };
 
-  const fetchNearby = async () => {
+  // Bolt: Memoize callback passed to CameraView hot loop
+  const fetchNearby = useCallback(async () => {
     if (!location) return;
     setIsFetchingNearby(true);
     try {
@@ -403,7 +408,7 @@ export default function App() {
     } finally { 
       setIsFetchingNearby(false); 
     }
-  };
+  }, [location, searchRadius, selectedCategories]);
 
   // --- Camera Logic ---
   const startCamera = async (mode: 'capture' | 'scan') => {
@@ -447,13 +452,14 @@ export default function App() {
     return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
   }, [isCameraActive]);
 
-  const stopCamera = () => {
+  // Bolt: Memoize callback passed to CameraView hot loop
+  const stopCamera = useCallback(() => {
     setIsCameraActive(false);
     setIsScanMode(false);
     if (discovery) {
       setShowChronicle(true);
     }
-  };
+  }, [discovery]);
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
