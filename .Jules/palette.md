@@ -1,0 +1,3 @@
+## 2024-07-06 - Dynamic ARIA labels for context-dependent icon buttons
+**Learning:** Icon-only buttons whose actions depend heavily on a changing dynamic state (like an active AR target) are completely opaque to screen readers if they only use static ARIA labels. The label needs to reflect the current possible action or state constraint to be truly accessible.
+**Action:** When implementing icon-only buttons tied to a dynamic context or target, compute the `aria-label` dynamically based on the active state (e.g., target presence, already collected, saving state) rather than using a generic label like "Capture".
