@@ -1,0 +1,3 @@
+## 2024-10-24 - AR Overlay Garbage Collection Bottleneck
+**Learning:** The `CameraView` component re-renders up to 60fps due to `deviceorientation` (heading) events. Any intermediate array allocations (like array spreading `[...a, ...b]`) inside prop callbacks (e.g., `isLandmarkCollected`) cause severe garbage collection pressure in this hot loop, leading to frame drops in the AR overlay.
+**Action:** Always use sequential evaluations (e.g., `a.some(...) || b.some(...)`) instead of array merges for boolean checks in hot paths. Memoize functions passed to `CameraView` using `useCallback` with structural typing for explicit types.
