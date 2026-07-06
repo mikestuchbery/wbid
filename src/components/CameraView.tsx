@@ -221,6 +221,12 @@ export const CameraView: React.FC<CameraViewProps> = ({
             <button
               onClick={() => activeTarget && !isTargetCollected && onCollect(activeTarget)}
               disabled={!activeTarget || isSaving || isTargetCollected}
+              aria-label={
+                isSaving ? "Capturing landmark" :
+                isTargetCollected ? "Landmark already discovered" :
+                activeTarget ? `Capture ${activeTarget.name}` :
+                "No target locked"
+              }
               className={cn(
                 "w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 border-4",
                 activeTarget && !isTargetCollected
