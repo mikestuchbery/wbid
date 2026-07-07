@@ -1,0 +1,3 @@
+## 2024-07-07 - Avoid array spreads in render loop dependencies
+**Learning:** Merging arrays with spread syntax (e.g., `[...a, ...b].some(...)`) inside a function that is passed down to a component (`CameraView`) which re-renders at 60fps due to `deviceorientation` events creates constant intermediate array allocations, triggering GC jank and poor performance on mobile devices.
+**Action:** When a function like `isLandmarkCollected` is passed as a prop into a high-frequency component, wrap it in `useCallback`, add it to necessary dependency arrays, and avoid generating new arrays inside the function body. Replace array spreads with sequential evaluations (e.g., `a.some(...) || b.some(...)`).
