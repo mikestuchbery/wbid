@@ -1,0 +1,3 @@
+## 2024-07-08 - Avoid Intermediate Array Allocations in Hot Render Loops
+**Learning:** In AR applications where components like `CameraView` re-render frequently (e.g., up to 60fps due to device orientation), spreading arrays for boolean checks (e.g., `[...a, ...b].some(...)`) causes continuous array allocations and garbage collection overhead.
+**Action:** Replace intermediate array merges with sequential evaluations (e.g., `a.some(...) || b.some(...)`) and use `useCallback` to memoize the function reference passed to the child component.
